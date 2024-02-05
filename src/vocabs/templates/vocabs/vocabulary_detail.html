@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <title>Vocabulary: {{ vocabulary.uri }}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"
+      integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
+      crossorigin="anonymous"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'vocabs/vocab.css' %}" />
+  </head>
+
+  <body>
+    <h1>Vocabulary: {{ vocabulary.uri }}</h1>
+
+    <p>
+      <a href="{% url 'show_graph' pk=vocabulary.id %}">View JSON-LD</a>
+    </p>
+
+    <h2>Terms</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th class="properties-header">Properties</th>
+          <th>URI</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for term in vocabulary.terms.all %}
+        <tr>
+          <td>
+            <strong>{{ term.name }}</strong>
+          </td>
+          <td>
+            <ul class="properties">
+              {% for property in term.properties.all %}
+              <li>{% include 'vocabs/property_detail.html' %}</li>
+              {% endfor %}
+            </ul>
+            <ul>
+              <li>
+                <select class="add-property">
+                  <option>Add a property</option>
+                  {% for predicate in predicates %}
+                  <option hx-get="{% url 'new_property' %}?term_id={{ term.id }}&amp;predicate={{ predicate.curie }}"
+                    hx-target="previous .properties" hx-swap="beforeend">{{ predicate.curie }}</option>
+                  {% endfor %}
+                </select>
+              </li>
+            </ul>
+          </td>
+          <td>
+            <a href="{{ term.uri }}">{{ term.uri }}</a>
+          </td>
+          <td>
+            <button class="delete" hx-delete="{% url 'show_term' pk=term.id %}" hx-target="closest tr" hx-swap="delete"
+              hx-confirm="Really delete the term '{{ term.name }}'?">Delete</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>Create New Term</h2>
+
+    <form method="post" action="">
+      {% csrf_token %}
+      <input name="term_name" placeholder="Name" />
+      <select name="rdf_type">
+        <option value="">Basic term</option>
+        <option value="rdfs:Class">Class</option>
+        <option value="rdfs:Datatype">Datatype</option>
+      </select>
+      <button type="submit">Add Term</button>
+    </form>
+
+    <p><a href="{% url 'list_vocabularies' %}">All Vocabularies</a></p>
+
+    <script>
+      // from https://www.geeksforgeeks.org/how-to-parse-http-cookie-header-and-return-an-object-of-all-cookie-name-value-pairs-in-javascript/
+      function cookieParser(cookieString) {
+        // Return an empty object if cookieString
+        // is empty
+        if (cookieString === "")
+          return {};
+
+        // Get each individual key-value pairs
+        // from the cookie string
+        // This returns a new array
+        let pairs = cookieString.split(";");
+
+        // Separate keys from values in each pair string
+        // Returns a new array which looks like
+        // [[key1,value1], [key2,value2], ...]
+        let splittedPairs = pairs.map(cookie => cookie.split("="));
+
+        // Create an object with all key-value pairs
+        const cookieObj = splittedPairs.reduce(function (obj, cookie) {
+          // cookie[0] is the key of cookie
+          // cookie[1] is the value of the cookie
+          // decodeURIComponent() decodes the cookie
+          // string, to handle cookies with special
+          // characters, e.g. '$'.
+          // string.trim() trims the blank spaces
+          // auround the key and value.
+          obj[decodeURIComponent(cookie[0].trim())] = decodeURIComponent(cookie[1].trim());
+          return obj;
+        }, {})
+
+        return cookieObj;
+      }
+
+      document.body.addEventListener('htmx:afterSwap', function (evt) {
+        // reset the dropdown to the "Add a property" placeholder value
+        let selectElement = evt.detail.elt.parentNode.querySelector('.add-property');
+        if (selectElement) {
+          selectElement.value = 'Add a property';
+        }
+      });
+
+      document.body.addEventListener('htmx:beforeRequest', function (evt) {
+        // send the csrftoken as a header on DELETE requests
+        if (evt.detail.elt.className == 'delete') {
+          evt.detail.xhr.setRequestHeader('X-CSRFToken', cookieParser(document.cookie).csrftoken);
+        }
+      })
+    </script>
+
+
+  </body>
+
+</html>

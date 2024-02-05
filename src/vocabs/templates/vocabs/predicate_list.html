@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <title>Predicates</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'vocabs/vocab.css' %}" />
+  </head>
+
+  <body>
+
+    <p>
+      <a href="{% url 'list_vocabularies' %}">Vocabularies</a>
+    </p>
+
+    <h1>Predicates</h1>
+
+    <table>
+      <thead>
+        <tr>
+          <th>CURIE</th>
+          <th>URI</th>
+          <th>Object Type</th>
+          <th>Usage Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for predicate in object_list %}
+        <tr>
+          <td>
+            {{ predicate.curie }}
+          </td>
+          <td>
+            <a href="{{ predicate.uri }}">{{ predicate.uri }}</a>
+          </td>
+          <td>
+            {{ predicate.object_type }}
+          </td>
+          <td>
+            {{ predicate.usage_count }}
+          </td>
+          {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>Create Predicate</h2>
+    <form method="post" action="">
+      {% csrf_token %}
+      <input name="new_predicate" size="40" placeholder="URI or CURIE" />
+      <label>
+        Object type:
+        <select name="object_type">
+          <option>URIRef</option>
+          <option>Literal</option>
+        </select>
+      </label>
+      <button type="submit">Add Predicate</button>
+    </form>
+
+  </body>
+
+</html>

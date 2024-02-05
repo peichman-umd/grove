@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <title>Vocabularies</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'vocabs/vocab.css' %}" />
+  </head>
+
+  <body>
+    <p>
+      <a href="{% url 'list_predicates' %}">Predicates</a>
+    </p>
+
+    <h1>Vocabularies</h1>
+
+    <table>
+      <thead>
+        <tr>
+          <th>URI</th>
+          <th>Term Count</th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for vocab in vocabularies %}
+        <tr>
+          <td>
+            <a href="{{ vocab.uri }}">{{ vocab.uri }}</a>
+          </td>
+          <td>
+            {{ vocab.term_count }}
+          </td>
+          <td>
+            <a href="{% url 'show_vocabulary' pk=vocab.id %}">View</a>
+          </td>
+          <td>
+            <a href="{% url 'show_graph' pk=vocab.id %}">View JSON-LD</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>Create Vocabulary</h2>
+    <form method="post" action="">
+      {% csrf_token %}
+      <input name="vocabulary_uri" placeholder="URI" size="40" />
+      <button type="submit">Add Vocabulary</button>
+    </form>
+
+  </body>
+
+</html>

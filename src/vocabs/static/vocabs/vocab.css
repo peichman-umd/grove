@@ -1,0 +1,46 @@
+table {
+    border-collapse: collapse;
+}
+
+th,
+td {
+    border: 1px solid #666;
+    padding: .5em;
+}
+
+th {
+    background-color: #ddd;
+}
+
+td {
+    vertical-align: top;
+}
+
+tbody tr:nth-child(2n) {
+    background-color: #eee;
+}
+
+.properties-header {
+    width: 40em;
+}
+
+ul {
+    margin: 0;
+    padding: 0 .5em;
+    list-style-type: none;
+}
+
+li>button,
+li>select {
+    opacity: 0.25;
+}
+
+li:hover>button,
+li:hover>select {
+    opacity: 1.0;
+}
+
+li,
+form {
+    margin: 0 0 .5em 0;
+}

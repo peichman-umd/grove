@@ -1,0 +1,8 @@
+<strong title="{{ property.predicate.uri }}">{{ property.predicate }}</strong>
+{% if property.value_is_uri %}
+<a href="{{ property.value }}">{{ property.value_as_curie }}</a>
+{% else %}
+{{ property.value }}
+{% endif %}
+<button hx-get="{% url 'edit_property' pk=property.id %}" hx-target="closest li">Edit</button>
+<button class="delete" hx-delete="{% url 'show_property' pk=property.id %}" hx-swap="delete" hx-target="closest li">Delete</button>
