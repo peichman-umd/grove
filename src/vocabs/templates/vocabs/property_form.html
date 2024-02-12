@@ -1,6 +1,6 @@
 <form method="post" action="{% url 'edit_property' pk=property.id %}">
   {% csrf_token %}
   {{ form.term }} {{ form.predicate }} {{ form.value }}
-  <button hx-post="{% url 'edit_property' pk=property.id %}" hx-target="closest li" type="submit">Save</button>
-  <button hx-get="{% url 'show_property' pk=property.id %}" hx-target="closest li">Cancel</button>
+  <button hx-post="{% url 'edit_property' pk=property.id %}" hx-target="closest .property" type="submit">Save</button>
+  <button hx-get="{% url 'show_property' pk=property.id %}" hx-target="closest .property">Cancel</button>
 </form>

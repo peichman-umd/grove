@@ -31,16 +31,20 @@ ul {
 }
 
 li>button,
-li>select {
+td select {
     opacity: 0.25;
 }
 
 li:hover>button,
-li:hover>select {
+td:hover select {
     opacity: 1.0;
 }
 
 li,
 form {
     margin: 0 0 .5em 0;
+}
+
+.properties-controls {
+    padding: 0 .5em;
 }
