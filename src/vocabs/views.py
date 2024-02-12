@@ -1,7 +1,9 @@
 from typing import Any
 from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import DetailView, ListView, CreateView, UpdateView
 from plastron.namespaces import namespace_manager, rdf
@@ -9,6 +11,12 @@ from rdflib.util import from_n3
 
 from vocabs.forms import PropertyForm
 from vocabs.models import Predicate, Property, Term, Vocabulary
+
+
+class PrefixList(View):
+    def get(self, request, *args, **kwargs):
+        prefixes = {prefix: uri for prefix, uri in namespace_manager.namespaces()}
+        return render(request, 'vocabs/prefix_list.html', {'prefixes': dict(sorted(prefixes.items()))})
 
 
 class IndexView(ListView):
