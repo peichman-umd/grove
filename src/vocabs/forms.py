@@ -4,6 +4,7 @@ from rdflib.util import from_n3
 
 from vocabs.models import Predicate, Property
 
+
 class PropertyForm(ModelForm):
     class Meta:
         model = Property

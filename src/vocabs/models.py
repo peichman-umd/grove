@@ -1,5 +1,5 @@
-from django.db.models import Model, CharField, ForeignKey, CASCADE, TextChoices, PROTECT
-from plastron.namespaces import namespace_manager, dc
+from django.db.models import CASCADE, PROTECT, CharField, ForeignKey, Model, TextChoices
+from plastron.namespaces import dc, namespace_manager
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import NamespaceManager
 from rdflib.util import from_n3
