@@ -6,11 +6,33 @@
     "configurations": [
         {
             "name": "runserver",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src/manage.py",
             "args": [
                 "runserver"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "makemigrations",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/manage.py",
+            "args": [
+                "makemigrations"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "migrate",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/manage.py",
+            "args": [
+                "migrate"
             ],
             "console": "integratedTerminal",
             "justMyCode": true
