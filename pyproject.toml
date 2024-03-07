@@ -1,3 +1,8 @@
 [project]
 name = "grove"
 version = "1.0.0-dev"
+dependencies = [
+    "django~=5.0",
+    "plastron-utils~=4.0",
+    "rdflib~=7.0",
+]
