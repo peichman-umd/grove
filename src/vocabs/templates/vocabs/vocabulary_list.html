@@ -48,7 +48,7 @@
     <h2>Create Vocabulary</h2>
     <form method="post" action="">
       {% csrf_token %}
-      <input name="vocabulary_uri" placeholder="URI" size="40" />
+      {{ vocab_form.uri }}
       <button type="submit">Add Vocabulary</button>
     </form>
 

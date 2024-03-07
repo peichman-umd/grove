@@ -1,8 +1,12 @@
-from django.forms import HiddenInput, ModelForm, TextInput
+from django.forms import CharField, Form, HiddenInput, ModelForm, TextInput
 from plastron.namespaces import namespace_manager
 from rdflib.util import from_n3
 
 from vocabs.models import Predicate, Property
+
+
+class NewVocabularyForm(Form):
+    uri = CharField(widget=TextInput(attrs={'size': 40, 'placeholder': 'URI'}))
 
 
 class PropertyForm(ModelForm):

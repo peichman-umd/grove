@@ -10,7 +10,7 @@ from django.views.generic import CreateView, DetailView, ListView, UpdateView
 from plastron.namespaces import namespace_manager, rdf
 from rdflib.util import from_n3
 
-from vocabs.forms import PropertyForm
+from vocabs.forms import PropertyForm, NewVocabularyForm
 from vocabs.models import Predicate, Property, Term, Vocabulary
 
 
@@ -24,8 +24,13 @@ class IndexView(ListView):
     model = Vocabulary
     context_object_name = 'vocabularies'
 
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update({'vocab_form': NewVocabularyForm()})
+        return context
+
     def post(self, request, *args, **kwargs):
-        uri = request.POST.get('vocabulary_uri', '').strip()
+        uri = request.POST.get('uri', '').strip()
         if uri != '':
             vocab, is_new = Vocabulary.objects.get_or_create(
                 uri=uri
