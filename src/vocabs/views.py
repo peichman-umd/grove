@@ -1,12 +1,11 @@
+from http import HTTPStatus
 from typing import Any
 
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
-from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView, TemplateView
 from plastron.namespaces import namespace_manager, rdf
 from rdflib.util import from_n3
 
@@ -14,10 +13,14 @@ from vocabs.forms import PropertyForm, NewVocabularyForm
 from vocabs.models import Predicate, Property, Term, Vocabulary
 
 
-class PrefixList(View):
-    def get(self, request, *args, **kwargs):
+class PrefixList(TemplateView):
+    template_name = 'vocabs/prefix_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         prefixes = {prefix: uri for prefix, uri in namespace_manager.namespaces()}
-        return render(request, 'vocabs/prefix_list.html', {'prefixes': dict(sorted(prefixes.items()))})
+        context.update({'prefixes': dict(sorted(prefixes.items()))})
+        return context
 
 
 class IndexView(ListView):
@@ -32,11 +35,10 @@ class IndexView(ListView):
     def post(self, request, *args, **kwargs):
         uri = request.POST.get('uri', '').strip()
         if uri != '':
-            vocab, is_new = Vocabulary.objects.get_or_create(
-                uri=uri
-            )
+            vocab, is_new = Vocabulary.objects.get_or_create(uri=uri)
+            return HttpResponseRedirect(reverse('show_vocabulary', args=(vocab.id,)))
 
-        return HttpResponseRedirect(reverse('show_vocabulary', args=(vocab.id,)))
+        return HttpResponseRedirect(reverse('list_vocabularies'))
 
 
 class VocabularyView(DetailView):
@@ -60,7 +62,10 @@ class VocabularyView(DetailView):
                 name=name,
             )
             if rdf_type != '':
-                predicate, _ = Predicate.objects.get_or_create(uri=str(rdf.type), object_type=Predicate.ObjectType.URI_REF)
+                predicate, _ = Predicate.objects.get_or_create(
+                    uri=str(rdf.type),
+                    object_type=Predicate.ObjectType.URI_REF,
+                )
                 Property.objects.get_or_create(
                     term=term,
                     predicate=predicate,
@@ -73,9 +78,12 @@ class VocabularyView(DetailView):
 class GraphView(DetailView):
     model = Vocabulary
 
-    def get(self, request, pk, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         graph, context = self.get_object().graph()
-        return HttpResponse(graph.serialize(format='json-ld', context=context), headers={'Content-Type': 'application/ld+json; charset=utf-8'})
+        return HttpResponse(
+            graph.serialize(format='json-ld', context=context),
+            headers={'Content-Type': 'application/ld+json; charset=utf-8'},
+        )
 
 
 class TermView(DetailView):
@@ -83,18 +91,19 @@ class TermView(DetailView):
     context_object_name = 'term'
 
     @method_decorator(ensure_csrf_cookie)
-    def delete(self, request, pk, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         self.get_object().delete()
-        return HttpResponse()
+        return HttpResponse(status=HTTPStatus.NO_CONTENT)
+
 
 class PropertyView(DetailView):
     model = Property
     context_object_name = 'property'
 
     @method_decorator(ensure_csrf_cookie)
-    def delete(self, request, pk, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         self.get_object().delete()
-        return HttpResponse()
+        return HttpResponse(status=HTTPStatus.NO_CONTENT)
 
 
 class NewPropertyView(CreateView):
