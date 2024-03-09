@@ -1,5 +1,5 @@
-{% load static %}
 <!DOCTYPE html>
+{% load static %}
 <html>
 
   <head>
@@ -17,6 +17,17 @@
       <a href="{% url 'show_graph' pk=vocabulary.id %}">View JSON-LD</a>
     </p>
 
+    <form method="post" action="{% url 'show_vocabulary' pk=vocabulary.id %}">
+      {% csrf_token %}
+      <dl class="form-fields">
+        {% for field in form %}
+        <dt{% if field.field.required %} class="required"{% endif %}>{{ field.label }}</dt>
+        <dd>{{ field }}</dd>
+        {% endfor %}
+      </dl>
+      <button type="submit">Update</button>
+    </form>
+
     <h2>Terms</h2>
 
     <table>
@@ -30,42 +41,14 @@
       </thead>
       <tbody>
         {% for term in vocabulary.terms.all %}
-        <tr class="term">
-          <td>
-            <strong>{{ term.name }}</strong>
-          </td>
-          <td>
-            <ul class="properties">
-              {% for property in term.properties.all %}
-              <li class="property">{% include 'vocabs/property_detail.html' %}</li>
-              {% endfor %}
-            </ul>
-            <div class="properties-controls">
-              <select class="add-property" hx-target="previous .properties" hx-swap="beforeend">
-                <option>Add a property</option>
-                {% for predicate in predicates %}
-                <option hx-get="{% url 'new_property' %}?term_id={{ term.id }}&amp;predicate={{ predicate.curie }}">
-                  {{ predicate.curie }}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-          </td>
-          <td>
-            <a href="{{ term.uri }}">{{ term.uri }}</a>
-          </td>
-          <td>
-            <button class="delete" hx-delete="{% url 'show_term' pk=term.id %}" hx-target="closest .term" hx-swap="delete"
-              hx-confirm="Really delete the term '{{ term.name }}'?">Delete</button>
-          </td>
-        </tr>
+        {% include 'vocabs/term.html' %}
         {% endfor %}
       </tbody>
     </table>
 
     <h2>Create New Term</h2>
 
-    <form method="post" action="">
+    <form method="post" action="{% url 'list_terms' pk=vocabulary.id %}">
       {% csrf_token %}
       <input name="term_name" placeholder="Name" />
       <select name="rdf_type">
@@ -73,7 +56,7 @@
         <option value="rdfs:Class">Class</option>
         <option value="rdfs:Datatype">Datatype</option>
       </select>
-      <button type="submit">Add Term</button>
+      <button type="submit" hx-post="{% url 'list_terms' pk=vocabulary.id %}" hx-target="previous tbody" hx-swap="beforeend">Add Term</button>
     </form>
 
     <p><a href="{% url 'list_vocabularies' %}">All Vocabularies</a></p>
@@ -94,17 +77,17 @@
         // Separate keys from values in each pair string
         // Returns a new array which looks like
         // [[key1,value1], [key2,value2], ...]
-        let splittedPairs = pairs.map(cookie => cookie.split("="));
+        let splitPairs = pairs.map(cookie => cookie.split("="));
 
         // Create an object with all key-value pairs
-        const cookieObj = splittedPairs.reduce(function (obj, cookie) {
+        const cookieObj = splitPairs.reduce(function (obj, cookie) {
           // cookie[0] is the key of cookie
           // cookie[1] is the value of the cookie
           // decodeURIComponent() decodes the cookie
           // string, to handle cookies with special
           // characters, e.g. '$'.
           // string.trim() trims the blank spaces
-          // auround the key and value.
+          // around the key and value.
           obj[decodeURIComponent(cookie[0].trim())] = decodeURIComponent(cookie[1].trim());
           return obj;
         }, {})

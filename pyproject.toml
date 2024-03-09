@@ -6,3 +6,13 @@ dependencies = [
     "plastron-utils~=4.0",
     "rdflib~=7.0",
 ]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-django",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "grove.settings"

@@ -1,8 +1,12 @@
+from contextlib import contextmanager
+
 from django.db.models import CASCADE, PROTECT, CharField, ForeignKey, Model, TextChoices
-from plastron.namespaces import dc, namespace_manager
-from rdflib import Graph, Literal, URIRef
+from plastron.namespaces import dc, namespace_manager as nsm, rdfs
+from rdflib import Graph, Literal, URIRef, Namespace
 from rdflib.namespace import NamespaceManager
 from rdflib.util import from_n3
+
+vann = Namespace('http://purl.org/vocab/vann/')
 
 
 class Context(dict):
@@ -22,9 +26,17 @@ class Vocabulary(Model):
         verbose_name_plural = 'vocabularies'
 
     uri = CharField(max_length=256)
+    label = CharField(max_length=256)
+    description = CharField(max_length=1024, blank=True)
+    preferred_prefix = CharField(max_length=32, blank=True)
 
     def __str__(self) -> str:
-        return self.uri
+        return str(self.uri)
+
+    @classmethod
+    @contextmanager
+    def with_uri(cls, uri: str):
+        yield cls.objects.get(uri=uri)
 
     @property
     def term_count(self) -> int:
@@ -32,21 +44,29 @@ class Vocabulary(Model):
 
     def graph(self) -> tuple[Graph, Context]:
         context = Context(
-            namespace_manager,
+            namespace_manager=nsm,
             dc=str(dc),
+            vann=str(vann),
         )
         graph = Graph()
+        vocab_subject = URIRef(self.uri)
+        if self.label:
+            graph.add((vocab_subject, rdfs.label, Literal(self.label)))
+        if self.description:
+            graph.add((vocab_subject, dc.description, Literal(self.description)))
+        if self.preferred_prefix:
+            graph.add((vocab_subject, vann.preferredNamespacePrefix, Literal(self.preferred_prefix)))
         for term in self.terms.all():
             s = URIRef(term.uri)
             graph.add((s, dc.identifier, Literal(term.name)))
-            for property in term.properties.all():
-                p = URIRef(property.predicate.uri)
+            for prop in term.properties.all():
+                p = URIRef(prop.predicate.uri)
                 context.add_prefix(p)
-                if property.value_is_uri:
-                    o = URIRef(property.value)
+                if prop.value_is_uri:
+                    o = URIRef(prop.value)
                     context.add_prefix(o)
                 else:
-                    o = Literal(property.value)
+                    o = Literal(prop.value)
                 graph.add((s, p, o))
 
         return graph, context
@@ -78,8 +98,8 @@ class Predicate(Model):
 
     @property
     def curie(self) -> str:
-        curie = URIRef(self.uri).n3(namespace_manager=namespace_manager)
-        return curie if len(curie) < len(self.uri) else ''
+        curie = URIRef(str(self.uri)).n3(namespace_manager=nsm)
+        return curie if len(curie) < len(str(self.uri)) else ''
 
     def __str__(self) -> str:
         return self.curie or self.uri
@@ -106,8 +126,8 @@ class Property(Model):
 
     @property
     def value_as_curie(self) -> str:
-        curie = URIRef(self.value).n3(namespace_manager=namespace_manager)
-        return curie if len(curie) <= len(self.value) else self.value
+        curie = URIRef(str(self.value)).n3(namespace_manager=nsm)
+        return curie if len(curie) <= len(str(self.value)) else str(self.value)
 
     @property
     def value_for_editing(self) -> str:
