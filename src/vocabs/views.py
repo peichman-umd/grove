@@ -13,7 +13,7 @@ from plastron.namespaces import namespace_manager, rdf
 from rdflib.util import from_n3
 
 from vocabs.forms import PropertyForm, NewVocabularyForm, VocabularyForm
-from vocabs.models import Predicate, Property, Term, Vocabulary
+from vocabs.models import Predicate, Property, Term, Vocabulary, VOCAB_FORMAT_LABELS
 
 
 class PrefixList(TemplateView):
@@ -32,7 +32,10 @@ class IndexView(ListView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
-        context.update({'vocab_form': NewVocabularyForm()})
+        context.update({
+            'vocab_form': NewVocabularyForm(),
+            'formats': VOCAB_FORMAT_LABELS,
+        })
         return context
 
     def post(self, _request, *_args, **_kwargs):
@@ -56,6 +59,7 @@ class VocabularyView(UpdateView):
         context.update({
             'predicates': Predicate.objects.all,
             'form': VocabularyForm(instance=self.get_object()),
+            'formats': VOCAB_FORMAT_LABELS,
         })
         return context
 
@@ -102,11 +106,30 @@ class TermsView(View):
 class GraphView(DetailView):
     model = Vocabulary
 
+    def requested_content_type(self, default: str = 'json-ld') -> tuple[str, str]:
+        format_param = self.request.GET.get('format', default)
+        match format_param:
+            case 'json-ld' | 'jsonld' | 'json':
+                return 'application/ld+json', 'utf-8'
+            case 'rdfxml' | 'rdf/xml' | 'rdf' | 'xml':
+                return 'application/rdf+xml', 'utf-8'
+            case 'ttl' | 'turtle':
+                return 'text/turtle', 'utf-8'
+            case 'nt' | 'ntriples' | 'n-triples':
+                return 'application/n-triples', 'us-ascii'
+            case _:
+                raise ValueError(f'Unknown format: {format_param}')
+
     def get(self, request, *args, **kwargs):
         graph, context = self.get_object().graph()
+        try:
+            media_type, charset = self.requested_content_type()
+        except ValueError as e:
+            return HttpResponse(str(e), status=HTTPStatus.NOT_ACCEPTABLE)
+
         return HttpResponse(
-            graph.serialize(format='json-ld', context=context),
-            headers={'Content-Type': 'application/ld+json; charset=utf-8'},
+            graph.serialize(format=media_type, context=context),
+            headers={'Content-Type': f'{media_type}; charset={charset}'},
         )
 
 

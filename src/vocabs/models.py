@@ -8,6 +8,13 @@ from rdflib.util import from_n3
 
 vann = Namespace('http://purl.org/vocab/vann/')
 
+VOCAB_FORMAT_LABELS = {
+    'json-ld': 'JSON-LD',
+    'turtle': 'Turtle',
+    'rdfxml': 'RDF/XML',
+    'ntriples': 'N-Triples',
+}
+
 
 class Context(dict):
     def __init__(self, namespace_manager: NamespaceManager, **kwargs):
@@ -46,6 +53,7 @@ class Vocabulary(Model):
         context = Context(
             namespace_manager=nsm,
             dc=str(dc),
+            rdfs=str(rdfs),
             vann=str(vann),
         )
         graph = Graph()
