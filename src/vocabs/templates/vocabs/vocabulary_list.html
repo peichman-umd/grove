@@ -1,5 +1,5 @@
-{% load static %}
 <!DOCTYPE html>
+{% load static %}
 <html>
 
   <head>
@@ -19,26 +19,30 @@
     <table>
       <thead>
         <tr>
-          <th>URI</th>
+          <th>Label</th>
+          <th>Preferred Prefix</th>
           <th>Term Count</th>
-          <th></th>
-          <th></th>
+          <th>URI</th>
+          <th>Preview</th>
         </tr>
       </thead>
       <tbody>
         {% for vocab in vocabularies %}
         <tr>
           <td>
-            <a href="{{ vocab.uri }}">{{ vocab.uri }}</a>
+            <a href="{% url 'show_vocabulary' pk=vocab.id %}">{{ vocab.label }}</a>
+          </td>
+          <td>
+            {{ vocab.preferred_prefix }}
           </td>
           <td>
             {{ vocab.term_count }}
           </td>
           <td>
-            <a href="{% url 'show_vocabulary' pk=vocab.id %}">View</a>
+            <a href="{{ vocab.uri }}">{{ vocab.uri }}</a>
           </td>
           <td>
-            <a href="{% url 'show_graph' pk=vocab.id %}">View JSON-LD</a>
+            <a href="{% url 'show_graph' pk=vocab.id %}">JSON-LD</a>
           </td>
         </tr>
         {% endfor %}

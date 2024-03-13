@@ -1,15 +1,18 @@
 from http import HTTPStatus
+from os.path import basename
 from typing import Any
 
 from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import CreateView, DetailView, ListView, UpdateView, TemplateView
 from plastron.namespaces import namespace_manager, rdf
 from rdflib.util import from_n3
 
-from vocabs.forms import PropertyForm, NewVocabularyForm
+from vocabs.forms import PropertyForm, NewVocabularyForm, VocabularyForm
 from vocabs.models import Predicate, Property, Term, Vocabulary
 
 
@@ -32,28 +35,46 @@ class IndexView(ListView):
         context.update({'vocab_form': NewVocabularyForm()})
         return context
 
-    def post(self, request, *args, **kwargs):
-        uri = request.POST.get('uri', '').strip()
+    def post(self, _request, *_args, **_kwargs):
+        uri = self.request.POST.get('uri', '').strip()
         if uri != '':
-            vocab, is_new = Vocabulary.objects.get_or_create(uri=uri)
+            label = basename(uri.rstrip('#/')).title()
+            vocab, is_new = Vocabulary.objects.get_or_create(uri=uri, label=label)
             return HttpResponseRedirect(reverse('show_vocabulary', args=(vocab.id,)))
 
         return HttpResponseRedirect(reverse('list_vocabularies'))
 
 
-class VocabularyView(DetailView):
+class VocabularyView(UpdateView):
     model = Vocabulary
+    fields = ['uri', 'label', 'description', 'preferred_prefix']
     context_object_name = 'vocabulary'
+    template_name_suffix = '_detail'
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context.update({
             'predicates': Predicate.objects.all,
+            'form': VocabularyForm(instance=self.get_object()),
         })
         return context
 
-    def post(self, request, pk, *args, **kwargs):
-        vocabulary = self.get_object()
+    def get_success_url(self):
+        return reverse('show_vocabulary', kwargs={'pk': self.object.id})
+
+    def form_valid(self, form):
+        for key, value in form.cleaned_data.items():
+            setattr(self.object, key, value)
+        return super().form_valid(form)
+
+
+class TermsView(View):
+    model = Vocabulary
+    context_object_name = 'vocabulary'
+
+    def post(self, request, pk, *_args, **_kwargs):
+        """Create a new term."""
+        vocabulary = get_object_or_404(self.model, id=pk)
         name = request.POST.get('term_name', '').strip()
         rdf_type = request.POST.get('rdf_type', '').strip()
         if name != '':
@@ -71,6 +92,9 @@ class VocabularyView(DetailView):
                     predicate=predicate,
                     value=from_n3(rdf_type),
                 )
+
+            if self.request.headers.get('HX-Request', 'false') == 'true':
+                return render(self.request, 'vocabs/term.html', {'term': term, 'predicates': Predicate.objects.all})
 
         return HttpResponseRedirect(reverse('show_vocabulary', args=(pk,)))
 
@@ -91,9 +115,9 @@ class TermView(DetailView):
     context_object_name = 'term'
 
     @method_decorator(ensure_csrf_cookie)
-    def delete(self, request, *args, **kwargs):
+    def delete(self, *_args, **_kwargs):
         self.get_object().delete()
-        return HttpResponse(status=HTTPStatus.NO_CONTENT)
+        return HttpResponse(status=HTTPStatus.OK)
 
 
 class PropertyView(DetailView):
@@ -101,9 +125,9 @@ class PropertyView(DetailView):
     context_object_name = 'property'
 
     @method_decorator(ensure_csrf_cookie)
-    def delete(self, request, *args, **kwargs):
+    def delete(self, *_args, **_kwargs):
         self.get_object().delete()
-        return HttpResponse(status=HTTPStatus.NO_CONTENT)
+        return HttpResponse(status=HTTPStatus.OK)
 
 
 class NewPropertyView(CreateView):
@@ -145,14 +169,14 @@ class PredicatesView(ListView):
     model = Predicate
 
     # create new Predicate
-    def post(self, request, *args, **kwargs):
-        uri = request.POST.get('new_predicate', '').strip()
+    def post(self, _request, *_args, **_kwargs):
+        uri = self.request.POST.get('new_predicate', '').strip()
         if uri != '':
             if not uri.startswith('http:') or uri.startswith('https:'):
                 uri = from_n3(uri, nsm=namespace_manager)
             Predicate.objects.get_or_create(
                 uri=uri,
-                object_type=request.POST.get('object_type', '')
+                object_type=self.request.POST.get('object_type', '')
             )
 
         return HttpResponseRedirect(reverse('list_predicates'))
