@@ -1,7 +1,7 @@
 from django.urls import path
 
 from vocabs.views import (GraphView, IndexView, NewPropertyView, PredicatesView, PrefixList, PropertyEditView,
-                          PropertyView, TermView, VocabularyView, TermsView)
+                          PropertyView, TermView, VocabularyView, TermsView, ImportFormView)
 
 urlpatterns = [
     path('', IndexView.as_view(), name='list_vocabularies'),
@@ -13,5 +13,6 @@ urlpatterns = [
     path('properties/<int:pk>', PropertyView.as_view(), name='show_property'),
     path('properties/<int:pk>/edit', PropertyEditView.as_view(), name='edit_property'),
     path('predicates', PredicatesView.as_view(), name='list_predicates'),
-    path('prefixes', PrefixList.as_view(), name='list_prefixes')
+    path('prefixes', PrefixList.as_view(), name='list_prefixes'),
+    path('import', ImportFormView.as_view(), name='import_form'),
 ]

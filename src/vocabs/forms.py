@@ -1,8 +1,8 @@
-from django.forms import CharField, Form, HiddenInput, ModelForm, TextInput, Textarea
+from django.forms import CharField, Form, HiddenInput, ModelForm, TextInput, Textarea, FileField, ChoiceField
 from plastron.namespaces import namespace_manager
 from rdflib.util import from_n3
 
-from vocabs.models import Predicate, Property, Vocabulary, VocabularyURIValidator
+from vocabs.models import Predicate, Property, Vocabulary, VocabularyURIValidator, VOCAB_FORMAT_LABELS
 
 
 class NewVocabularyForm(Form):
@@ -52,3 +52,14 @@ class PropertyForm(ModelForm):
                 return str(from_n3(value, nsm=namespace_manager))
 
         return value
+
+
+class ImportForm(Form):
+    uri = CharField(
+        label='URI',
+        widget=TextInput(attrs={'size': 40}),
+        validators=[VocabularyURIValidator()],
+    )
+    file = FileField()
+    rdf_format = ChoiceField(choices=VOCAB_FORMAT_LABELS, label='RDF Format')
+    template_name = 'vocabs/dl_form.html'
