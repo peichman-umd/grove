@@ -1,3 +1,15 @@
+nav {
+    margin: 1em 0;
+}
+nav>ul {
+    padding: 0;
+}
+nav>ul>li {
+    display: inline;
+}
+nav>ul>li+li:before {
+    content: ' | ';
+}
 table {
     border-collapse: collapse;
 }
@@ -26,7 +38,7 @@ tbody tr:nth-child(2n) {
 
 ul {
     margin: 0;
-    padding: 0 .5em;
+    padding: 0;
     list-style-type: none;
 }
 
@@ -46,7 +58,7 @@ form {
 }
 
 .properties-controls {
-    padding: 0 .5em;
+    padding: .5em 0;
 }
 
 .form-fields {
@@ -64,4 +76,57 @@ form {
 
 .required {
     font-weight: bold;
+}
+
+.errorlist {
+    padding: 0;
+    margin-top: .25em;
+    color: red;
+}
+.errorlist li:before,
+.messages>.error:before {
+    content: '❗ ';
+}
+.messages>.success:before {
+    content: '✔️ ';
+}
+
+.messages>li {
+    border: 2px solid;
+    padding: .5rem;
+}
+.messages>.success {
+    border-color: green;
+    background: #dfd;
+}
+.messages>.error {
+    border-color: red;
+    background: #fdd;
+}
+.messages>.info {
+    border-color: blue;
+    background: lightblue;
+}
+
+#forms {
+    display: grid;
+    grid-template-areas:
+    "details terms"
+    "new-terms terms";
+    grid-auto-rows: auto 1fr;
+    grid-column-gap: 2rem;
+}
+#details {
+    grid-area: details;
+}
+#terms {
+    grid-area: terms;
+}
+#new-terms {
+    grid-area: new-terms;
+}
+
+textarea {
+    font-family: sans-serif;
+    font-size: 13px;
 }

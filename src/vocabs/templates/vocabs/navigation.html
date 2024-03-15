@@ -1,0 +1,13 @@
+<nav>
+  <ul class="nav">
+    {% for name, label in links.items %}
+    <li>
+      {% if request.resolver_match.view_name == name %}
+      <strong>{{ label }}</strong>
+      {% else %}
+      <a href="{% url name %}">{{ label }}</a>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</nav>

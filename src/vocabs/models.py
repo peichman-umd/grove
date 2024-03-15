@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 
+from django.core.validators import RegexValidator
 from django.db.models import CASCADE, PROTECT, CharField, ForeignKey, Model, TextChoices
 from plastron.namespaces import dc, namespace_manager as nsm, rdfs
 from rdflib import Graph, Literal, URIRef, Namespace
@@ -14,6 +15,11 @@ VOCAB_FORMAT_LABELS = {
     'rdfxml': 'RDF/XML',
     'ntriples': 'N-Triples',
 }
+
+
+class VocabularyURIValidator(RegexValidator):
+    regex = r'.+[/#]$'
+    message = 'Must end with "/" or "#"'
 
 
 class Context(dict):
@@ -32,7 +38,7 @@ class Vocabulary(Model):
     class Meta:
         verbose_name_plural = 'vocabularies'
 
-    uri = CharField(max_length=256)
+    uri = CharField(max_length=256, validators=[VocabularyURIValidator()])
     label = CharField(max_length=256)
     description = CharField(max_length=1024, blank=True)
     preferred_prefix = CharField(max_length=32, blank=True)

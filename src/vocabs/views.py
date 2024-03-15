@@ -2,6 +2,7 @@ from http import HTTPStatus
 from os.path import basename
 from typing import Any
 
+from django.contrib import messages
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -22,7 +23,10 @@ class PrefixList(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         prefixes = {prefix: uri for prefix, uri in namespace_manager.namespaces()}
-        context.update({'prefixes': dict(sorted(prefixes.items()))})
+        context.update({
+            'title': 'Prefixes',
+            'prefixes': dict(sorted(prefixes.items())),
+        })
         return context
 
 
@@ -33,6 +37,7 @@ class IndexView(ListView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context.update({
+            'title': 'Vocabularies',
             'vocab_form': NewVocabularyForm(),
             'formats': VOCAB_FORMAT_LABELS,
         })
@@ -50,16 +55,17 @@ class IndexView(ListView):
 
 class VocabularyView(UpdateView):
     model = Vocabulary
-    fields = ['uri', 'label', 'description', 'preferred_prefix']
+    form_class = VocabularyForm
     context_object_name = 'vocabulary'
     template_name_suffix = '_detail'
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context.update({
+            'title': f'Vocabulary: {self.object.label}',
             'predicates': Predicate.objects.all,
-            'form': VocabularyForm(instance=self.get_object()),
             'formats': VOCAB_FORMAT_LABELS,
+            'terms': self.object.terms.all().order_by('name'),
         })
         return context
 
@@ -67,9 +73,14 @@ class VocabularyView(UpdateView):
         return reverse('show_vocabulary', kwargs={'pk': self.object.id})
 
     def form_valid(self, form):
+        messages.success(self.request, message='Vocabulary updated')
         for key, value in form.cleaned_data.items():
             setattr(self.object, key, value)
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, message='Vocabulary cannot be updated due to validation errors')
+        return super().form_invalid(form)
 
 
 class TermsView(View):
@@ -190,6 +201,11 @@ class PropertyEditView(UpdateView):
 
 class PredicatesView(ListView):
     model = Predicate
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(object_list=object_list, **kwargs)
+        context.update({'title': 'Predicates'})
+        return context
 
     # create new Predicate
     def post(self, _request, *_args, **_kwargs):

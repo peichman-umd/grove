@@ -37,7 +37,7 @@ def test_list_prefixes(client):
 @pytest.mark.django_db
 def test_create_vocabulary(post, vocab_uri):
     response = post('/vocabs/', data={'uri': vocab_uri})
-    assert f'Vocabulary: {vocab_uri}' in response.content.decode()
+    assert f'Vocabulary: Foo' in response.content.decode()
     assert len(Vocabulary.objects.all()) == 1
 
 

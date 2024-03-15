@@ -1,32 +1,24 @@
-{% load static %}
-<link rel="stylesheet" type="text/css" href="{% static 'vocabs/vocab.css' %}" />
-
+{% extends 'vocabs/base.html' %}
+{% block content %}
 <p>
-    <a href="{% url 'list_vocabularies' %}">Vocabularies</a> |
-    <a href="{% url 'list_predicates' %}">Predicates</a> |
-    <strong>Prefixes</strong>
-</p>
-
-<h1>Prefixes</h1>
-
-<p>
-    These are the prefixes that are available when using
-    <abbr title="Compact URI Expression">CURIE</abbr>s in this application:
+  These are the prefixes that are available when using
+  <abbr title="Compact URI Expression">CURIE</abbr>s in this application:
 </p>
 
 <table>
-    <thead>
-        <tr>
-            <th>Prefix</th>
-            <th>URI</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for prefix, uri in prefixes.items %}
-        <tr>
-            <td><strong>{{ prefix }}:</strong></td>
-            <td><a href="{{ uri }}">{{ uri }}</a></td>
-        </tr>
-        {% endfor %}
-    </tbody>
+  <thead>
+  <tr>
+    <th>Prefix</th>
+    <th>URI</th>
+  </tr>
+  </thead>
+  <tbody>
+  {% for prefix, uri in prefixes.items %}
+  <tr>
+    <td><strong>{{ prefix }}:</strong></td>
+    <td><a href="{{ uri }}">{{ uri }}</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
 </table>
+{% endblock %}
