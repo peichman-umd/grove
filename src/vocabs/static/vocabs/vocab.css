@@ -30,13 +30,13 @@ ul {
     list-style-type: none;
 }
 
-li>button,
-td select {
+.term li>button,
+.term td select {
     opacity: 0.25;
 }
 
-li:hover>button,
-td:hover select {
+.term li:hover>button,
+.term td:hover select {
     opacity: 1.0;
 }
 

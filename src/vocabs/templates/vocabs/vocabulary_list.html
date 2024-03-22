@@ -42,7 +42,9 @@
             <a href="{{ vocab.uri }}">{{ vocab.uri }}</a>
           </td>
           <td>
-            <a href="{% url 'show_graph' pk=vocab.id %}">JSON-LD</a>
+            {% for param, label in formats.items %}
+            <a href="{% url 'show_graph' pk=vocab.id %}?format={{ param }}">{{ label }}</a>
+            {% endfor %}
           </td>
         </tr>
         {% endfor %}

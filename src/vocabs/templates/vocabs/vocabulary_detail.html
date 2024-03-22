@@ -14,7 +14,10 @@
     <h1>Vocabulary: {{ vocabulary.uri }}</h1>
 
     <p>
-      <a href="{% url 'show_graph' pk=vocabulary.id %}">View JSON-LD</a>
+      Preview as:
+      {% for param, label in formats.items %}
+      <a href="{% url 'show_graph' pk=vocabulary.id %}?format={{ param }}">{{ label }}</a>
+      {% endfor %}
     </p>
 
     <form method="post" action="{% url 'show_vocabulary' pk=vocabulary.id %}">
