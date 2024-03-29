@@ -132,7 +132,7 @@ class GraphView(DetailView):
             case 'ttl' | 'turtle':
                 return 'text/turtle', 'utf-8'
             case 'nt' | 'ntriples' | 'n-triples':
-                return 'application/n-triples', 'us-ascii'
+                return 'application/n-triples', 'utf-8'
             case _:
                 raise ValueError(f'Unknown format: {format_param}')
 
@@ -255,7 +255,7 @@ class ImportFormView(FormView):
                 uri=form.cleaned_data['uri'],
             )
         except ValueError:
-            messages.error(self.request, message=f'Unable to import vocabulary')
+            messages.error(self.request, message='Unable to import vocabulary')
             return super().form_invalid(form)
 
         if is_new or count['new_terms'] > 0 or count['new_properties'] > 0:
