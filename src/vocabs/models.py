@@ -1,10 +1,21 @@
+import logging
+from collections import Counter
 from contextlib import contextmanager
+from os.path import basename
+from pathlib import PurePath
+from typing import IO, TextIO, TypeAlias
+from xml.sax import SAXParseException
 
+from django.core.validators import RegexValidator
 from django.db.models import CASCADE, PROTECT, CharField, ForeignKey, Model, TextChoices
 from plastron.namespaces import dc, namespace_manager as nsm, rdfs
 from rdflib import Graph, Literal, URIRef, Namespace
 from rdflib.namespace import NamespaceManager
+from rdflib.parser import InputSource
+from rdflib.plugin import PluginException
 from rdflib.util import from_n3
+
+logger = logging.getLogger(__name__)
 
 vann = Namespace('http://purl.org/vocab/vann/')
 
@@ -14,6 +25,14 @@ VOCAB_FORMAT_LABELS = {
     'rdfxml': 'RDF/XML',
     'ntriples': 'N-Triples',
 }
+
+GraphSource: TypeAlias = IO[bytes] | TextIO | InputSource | str | bytes | PurePath | None
+"""Type alias for the types accepted by the `rdflib.Graph.parse()` method's `source` argument."""
+
+
+class VocabularyURIValidator(RegexValidator):
+    regex = r'.+[/#]$'
+    message = 'Must end with "/" or "#"'
 
 
 class Context(dict):
@@ -32,7 +51,7 @@ class Vocabulary(Model):
     class Meta:
         verbose_name_plural = 'vocabularies'
 
-    uri = CharField(max_length=256)
+    uri = CharField(max_length=256, validators=[VocabularyURIValidator()])
     label = CharField(max_length=256)
     description = CharField(max_length=1024, blank=True)
     preferred_prefix = CharField(max_length=32, blank=True)
@@ -140,3 +159,58 @@ class Property(Model):
     @property
     def value_for_editing(self) -> str:
         return self.value_as_curie if self.value_is_uri else self.value
+
+
+class VocabularyImportError(Exception):
+    pass
+
+
+def import_vocabulary(file: GraphSource, uri: str, rdf_format: str) -> tuple[Vocabulary, bool, Counter]:
+    count = Counter({
+        'subjects': 0,
+        'new_terms': 0,
+        'new_properties': 0,
+    })
+    graph = Graph()
+    try:
+        graph.parse(file, format=rdf_format)
+    except (ValueError, SAXParseException, PluginException, FileNotFoundError) as e:
+        logger.error(
+            f'Unable to import vocabulary: {e.__class__.__name__}: {e} '
+            f'(file={file}, uri={uri}, rdf_format={rdf_format})'
+        )
+        raise VocabularyImportError from e
+    vocab_subject = URIRef(uri)
+    # check for existing predicates about the vocab (label, description, prefix)
+    default_vocab_metadata = {
+        'label': str(graph.value(
+            subject=vocab_subject, predicate=rdfs.label, default=Literal(basename(uri.rstrip('#/')).title())
+        )),
+        'description': str(graph.value(
+            subject=vocab_subject, predicate=dc.description, default=Literal('')
+        )),
+        'preferred_prefix': str(graph.value(
+            subject=vocab_subject, predicate=vann.preferredNamespacePrefix, default=Literal('')
+        )),
+    }
+    subjects = {s for s in set(graph.subjects()) if str(s).startswith(uri)}
+    count['subjects'] = len(subjects)
+    vocab, vocab_is_new = Vocabulary.objects.get_or_create(uri=uri, defaults=default_vocab_metadata)
+    for subject in subjects:
+        name = subject.replace(uri, '')
+        term, term_is_new = Term.objects.get_or_create(vocabulary=vocab, name=name)
+        if term_is_new:
+            count['new_terms'] += 1
+        for _, p, o in graph.triples((subject, None, None)):
+            if isinstance(o, URIRef):
+                object_type = Predicate.ObjectType.URI_REF
+            else:
+                object_type = Predicate.ObjectType.LITERAL
+            if p == dc.identifier and str(o) == name:
+                continue
+            predicate, _ = Predicate.objects.get_or_create(uri=str(p), object_type=object_type)
+            prop, prop_is_new = Property.objects.get_or_create(term=term, predicate=predicate, value=str(o))
+            if prop_is_new:
+                count['new_properties'] += 1
+
+    return vocab, vocab_is_new, count

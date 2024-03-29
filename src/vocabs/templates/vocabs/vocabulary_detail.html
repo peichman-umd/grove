@@ -1,56 +1,44 @@
-<!DOCTYPE html>
-{% load static %}
-<html>
+{% extends 'vocabs/base.html' %}
+{% block content %}
+<p>
+  <a href="{{ vocabulary.uri }}">{{ vocabulary.uri }}</a>
+  — Preview as:
+  {% for param, label in formats.items %}
+  <a href="{% url 'show_graph' pk=vocabulary.id %}?format={{ param }}" target="_blank">{{ label }}</a>
+  {% endfor %}
+</p>
 
-  <head>
-    <title>Vocabulary: {{ vocabulary.uri }}</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"
-      integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
-      crossorigin="anonymous"></script>
-    <link rel="stylesheet" type="text/css" href="{% static 'vocabs/vocab.css' %}" />
-  </head>
-
-  <body>
-    <h1>Vocabulary: {{ vocabulary.uri }}</h1>
-
-    <p>
-      Preview as:
-      {% for param, label in formats.items %}
-      <a href="{% url 'show_graph' pk=vocabulary.id %}?format={{ param }}">{{ label }}</a>
-      {% endfor %}
-    </p>
-
+<div id="forms">
+  <div id="details">
+    <h2>Details</h2>
     <form method="post" action="{% url 'show_vocabulary' pk=vocabulary.id %}">
       {% csrf_token %}
-      <dl class="form-fields">
-        {% for field in form %}
-        <dt{% if field.field.required %} class="required"{% endif %}>{{ field.label }}</dt>
-        <dd>{{ field }}</dd>
-        {% endfor %}
-      </dl>
+      {{ form }}
       <button type="submit">Update</button>
     </form>
+  </div>
 
-    <h2>Terms</h2>
-
+  <div id="terms">
+  <h2>Terms</h2>
     <table>
       <thead>
-        <tr>
-          <th>Name</th>
-          <th class="properties-header">Properties</th>
-          <th>URI</th>
-          <th></th>
-        </tr>
+      <tr>
+        <th>Name</th>
+        <th class="properties-header">Properties</th>
+        <th>URI</th>
+        <th></th>
+      </tr>
       </thead>
       <tbody>
-        {% for term in vocabulary.terms.all %}
-        {% include 'vocabs/term.html' %}
-        {% endfor %}
+      {% for term in terms %}
+      {% include 'vocabs/term.html' %}
+      {% endfor %}
       </tbody>
     </table>
+  </div>
 
+  <div id="new-terms">
     <h2>Create New Term</h2>
-
     <form method="post" action="{% url 'list_terms' pk=vocabulary.id %}">
       {% csrf_token %}
       <input name="term_name" placeholder="Name" />
@@ -61,60 +49,23 @@
       </select>
       <button type="submit" hx-post="{% url 'list_terms' pk=vocabulary.id %}" hx-target="previous tbody" hx-swap="beforeend">Add Term</button>
     </form>
+  </div>
+</div>
 
-    <p><a href="{% url 'list_vocabularies' %}">All Vocabularies</a></p>
+<script>
+  document.body.addEventListener('htmx:afterSwap', function (evt) {
+    // reset the dropdown to the "Add a property" placeholder value
+    let selectElement = evt.detail.elt.parentNode.querySelector('.add-property');
+    if (selectElement) {
+      selectElement.value = 'Add a property';
+    }
+  });
 
-    <script>
-      // from https://www.geeksforgeeks.org/how-to-parse-http-cookie-header-and-return-an-object-of-all-cookie-name-value-pairs-in-javascript/
-      function cookieParser(cookieString) {
-        // Return an empty object if cookieString
-        // is empty
-        if (cookieString === "")
-          return {};
-
-        // Get each individual key-value pairs
-        // from the cookie string
-        // This returns a new array
-        let pairs = cookieString.split(";");
-
-        // Separate keys from values in each pair string
-        // Returns a new array which looks like
-        // [[key1,value1], [key2,value2], ...]
-        let splitPairs = pairs.map(cookie => cookie.split("="));
-
-        // Create an object with all key-value pairs
-        const cookieObj = splitPairs.reduce(function (obj, cookie) {
-          // cookie[0] is the key of cookie
-          // cookie[1] is the value of the cookie
-          // decodeURIComponent() decodes the cookie
-          // string, to handle cookies with special
-          // characters, e.g. '$'.
-          // string.trim() trims the blank spaces
-          // around the key and value.
-          obj[decodeURIComponent(cookie[0].trim())] = decodeURIComponent(cookie[1].trim());
-          return obj;
-        }, {})
-
-        return cookieObj;
-      }
-
-      document.body.addEventListener('htmx:afterSwap', function (evt) {
-        // reset the dropdown to the "Add a property" placeholder value
-        let selectElement = evt.detail.elt.parentNode.querySelector('.add-property');
-        if (selectElement) {
-          selectElement.value = 'Add a property';
-        }
-      });
-
-      document.body.addEventListener('htmx:beforeRequest', function (evt) {
-        // send the csrftoken as a header on DELETE requests
-        if (evt.detail.elt.className == 'delete') {
-          evt.detail.xhr.setRequestHeader('X-CSRFToken', cookieParser(document.cookie).csrftoken);
-        }
-      })
-    </script>
-
-
-  </body>
-
-</html>
+  document.body.addEventListener('htmx:beforeRequest', function (evt) {
+    // send the csrftoken as a header on DELETE requests
+    if (evt.detail.elt.className == 'delete') {
+      evt.detail.xhr.setRequestHeader('X-CSRFToken', cookieParser(document.cookie).csrftoken);
+    }
+  })
+</script>
+{% endblock %}

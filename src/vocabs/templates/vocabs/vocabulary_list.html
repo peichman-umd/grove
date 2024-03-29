@@ -1,63 +1,44 @@
-<!DOCTYPE html>
-{% load static %}
-<html>
+{% extends 'vocabs/base.html' %}
+{% block content %}
+<table>
+  <thead>
+  <tr>
+    <th>Label</th>
+    <th>Preferred Prefix</th>
+    <th>Term Count</th>
+    <th>URI</th>
+    <th>Preview</th>
+  </tr>
+  </thead>
+  <tbody>
+  {% for vocab in vocabularies %}
+  <tr>
+    <td>
+      <a href="{% url 'show_vocabulary' pk=vocab.id %}">{{ vocab.label }}</a>
+    </td>
+    <td>
+      {{ vocab.preferred_prefix }}
+    </td>
+    <td>
+      {{ vocab.term_count }}
+    </td>
+    <td>
+      <a href="{{ vocab.uri }}">{{ vocab.uri }}</a>
+    </td>
+    <td>
+      {% for param, label in formats.items %}
+      <a href="{% url 'show_graph' pk=vocab.id %}?format={{ param }}">{{ label }}</a>
+      {% endfor %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
 
-  <head>
-    <title>Vocabularies</title>
-    <link rel="stylesheet" type="text/css" href="{% static 'vocabs/vocab.css' %}" />
-  </head>
-
-  <body>
-    <p>
-      <strong>Vocabularies</strong> |
-      <a href="{% url 'list_predicates' %}">Predicates</a> |
-      <a href="{% url 'list_prefixes' %}">Prefixes</a>
-    </p>
-
-    <h1>Vocabularies</h1>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Label</th>
-          <th>Preferred Prefix</th>
-          <th>Term Count</th>
-          <th>URI</th>
-          <th>Preview</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for vocab in vocabularies %}
-        <tr>
-          <td>
-            <a href="{% url 'show_vocabulary' pk=vocab.id %}">{{ vocab.label }}</a>
-          </td>
-          <td>
-            {{ vocab.preferred_prefix }}
-          </td>
-          <td>
-            {{ vocab.term_count }}
-          </td>
-          <td>
-            <a href="{{ vocab.uri }}">{{ vocab.uri }}</a>
-          </td>
-          <td>
-            {% for param, label in formats.items %}
-            <a href="{% url 'show_graph' pk=vocab.id %}?format={{ param }}">{{ label }}</a>
-            {% endfor %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <h2>Create Vocabulary</h2>
-    <form method="post" action="">
-      {% csrf_token %}
-      {{ vocab_form.uri }}
-      <button type="submit">Add Vocabulary</button>
-    </form>
-
-  </body>
-
-</html>
+<h2>Create Vocabulary</h2>
+<form method="post" action="">
+  {% csrf_token %}
+  {{ vocab_form.uri }}
+  <button type="submit">Add Vocabulary</button>
+</form>
+{% endblock %}

@@ -1,19 +1,25 @@
+import logging
 from http import HTTPStatus
 from os.path import basename
-from typing import Any
+from typing import Any, Counter
 
+from django.contrib import messages
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
+from django.template.defaultfilters import pluralize
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.generic import CreateView, DetailView, ListView, UpdateView, TemplateView
+from django.views.generic import CreateView, DetailView, ListView, UpdateView, TemplateView, FormView
 from plastron.namespaces import namespace_manager, rdf
 from rdflib.util import from_n3
 
-from vocabs.forms import PropertyForm, NewVocabularyForm, VocabularyForm
-from vocabs.models import Predicate, Property, Term, Vocabulary, VOCAB_FORMAT_LABELS
+from vocabs.forms import PropertyForm, NewVocabularyForm, VocabularyForm, ImportForm
+from vocabs.models import Predicate, Property, Term, Vocabulary, VOCAB_FORMAT_LABELS, import_vocabulary
+
+
+logger = logging.getLogger(__name__)
 
 
 class PrefixList(TemplateView):
@@ -22,7 +28,10 @@ class PrefixList(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         prefixes = {prefix: uri for prefix, uri in namespace_manager.namespaces()}
-        context.update({'prefixes': dict(sorted(prefixes.items()))})
+        context.update({
+            'title': 'Prefixes',
+            'prefixes': dict(sorted(prefixes.items())),
+        })
         return context
 
 
@@ -33,6 +42,7 @@ class IndexView(ListView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context.update({
+            'title': 'Vocabularies',
             'vocab_form': NewVocabularyForm(),
             'formats': VOCAB_FORMAT_LABELS,
         })
@@ -50,16 +60,17 @@ class IndexView(ListView):
 
 class VocabularyView(UpdateView):
     model = Vocabulary
-    fields = ['uri', 'label', 'description', 'preferred_prefix']
+    form_class = VocabularyForm
     context_object_name = 'vocabulary'
     template_name_suffix = '_detail'
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context.update({
+            'title': f'Vocabulary: {self.object.label}',
             'predicates': Predicate.objects.all,
-            'form': VocabularyForm(instance=self.get_object()),
             'formats': VOCAB_FORMAT_LABELS,
+            'terms': self.object.terms.all().order_by('name'),
         })
         return context
 
@@ -67,9 +78,14 @@ class VocabularyView(UpdateView):
         return reverse('show_vocabulary', kwargs={'pk': self.object.id})
 
     def form_valid(self, form):
+        messages.success(self.request, message='Vocabulary updated')
         for key, value in form.cleaned_data.items():
             setattr(self.object, key, value)
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, message='Vocabulary cannot be updated due to validation errors')
+        return super().form_invalid(form)
 
 
 class TermsView(View):
@@ -191,6 +207,11 @@ class PropertyEditView(UpdateView):
 class PredicatesView(ListView):
     model = Predicate
 
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(object_list=object_list, **kwargs)
+        context.update({'title': 'Predicates'})
+        return context
+
     # create new Predicate
     def post(self, _request, *_args, **_kwargs):
         uri = self.request.POST.get('new_predicate', '').strip()
@@ -203,3 +224,51 @@ class PredicatesView(ListView):
             )
 
         return HttpResponseRedirect(reverse('list_predicates'))
+
+
+def quantity(count: Counter, term: str) -> str:
+    if '|' not in term:
+        base = term
+        suffixes = 's'
+    else:
+        base, suffixes = term.split('|', 1)
+    # counter keys are in the plural form
+    key = base.replace(' ', '_') + pluralize(2, suffixes)
+    number = count[key]
+    return f'{number} {base}{pluralize(number, suffixes)}'
+
+
+class ImportFormView(FormView):
+    form_class = ImportForm
+    template_name = 'vocabs/import_form.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({'title': 'Import Vocabulary'})
+        return context
+
+    def form_valid(self, form):
+        try:
+            vocab, is_new, count = import_vocabulary(
+                file=form.files['file'],
+                rdf_format=form.cleaned_data['rdf_format'],
+                uri=form.cleaned_data['uri'],
+            )
+        except ValueError:
+            messages.error(self.request, message=f'Unable to import vocabulary')
+            return super().form_invalid(form)
+
+        if is_new or count['new_terms'] > 0 or count['new_properties'] > 0:
+            messages.success(self.request, message=f'Import successful: Vocabulary {"created" if is_new else "updated"}')
+            if count['new_terms'] > 0:
+                messages.info(self.request, message=f'Created {quantity(count, "new term")}.')
+            if count['new_properties'] > 0:
+                messages.info(self.request, message=f'Created {quantity(count, "new propert|y,ies")}.')
+        else:
+            messages.info(self.request, message='No changes to vocabulary')
+
+        return HttpResponseRedirect(reverse('show_vocabulary', kwargs={'pk': vocab.id}))
+
+    def form_invalid(self, form):
+        messages.error(self.request, message='Unable to import vocabulary')
+        return super().form_invalid(form)

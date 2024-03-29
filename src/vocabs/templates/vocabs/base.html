@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+{% load static %}
+{% load navigation %}
+<html>
+
+  <head>
+    <title>{{ title }}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"
+            integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
+            crossorigin="anonymous"></script>
+    <script src="{% static 'vocabs/grove.js' %}"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'vocabs/vocab.css' %}" />
+  </head>
+
+  <body>
+    <header>
+      {% navigation %}
+    </header>
+    <h1>{{ title }}</h1>
+    {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+      <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </body>
+</html>

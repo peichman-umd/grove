@@ -1,0 +1,6 @@
+<dl class="form-fields">
+  {% for field in form %}
+  <dt{% if field.field.required %} class="required"{% endif %}>{{ field.label }}</dt>
+  <dd>{{ field }}{{ field.errors }}</dd>
+  {% endfor %}
+</dl>

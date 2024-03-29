@@ -37,7 +37,7 @@ def test_list_prefixes(client):
 @pytest.mark.django_db
 def test_create_vocabulary(post, vocab_uri):
     response = post('/vocabs/', data={'uri': vocab_uri})
-    assert f'Vocabulary: {vocab_uri}' in response.content.decode()
+    assert f'Vocabulary: Foo' in response.content.decode()
     assert len(Vocabulary.objects.all()) == 1
 
 
@@ -86,3 +86,10 @@ def test_graph_not_acceptable(client, post, vocab_uri):
     vocab_path = post('/vocabs/', data={'uri': vocab_uri}).wsgi_request.path
     response = client.get(vocab_path + f'/graph', data={'format': 'NOT_A_VALID_FORMAT'})
     assert response.status_code == HTTPStatus.NOT_ACCEPTABLE
+
+
+@pytest.mark.django_db
+def test_import_vocabulary(datadir, client, post, vocab_uri):
+    with (datadir / 'foo.ttl').open() as fh:
+        response = post('/vocabs/import', data={'uri': vocab_uri, 'rdf_format': 'text/turtle', 'file': fh})
+    assert response.status_code == HTTPStatus.OK
