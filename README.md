@@ -25,6 +25,16 @@ pip install ../plastron/plastron-utils
 pip install -e .
 ```
 
+Create a `.env` file in the project base directory that looks like this:
+
+```dotenv
+DATABASE_URL=sqlite:///db.sqlite3
+DEBUG=True
+# SECRET_KEY can be anything with sufficient randomness
+# one way of generating this is "uuidgen | shasum -a 256 | cut -c-64"
+SECRET_KEY=...
+```
+
 Initialize the database:
 
 ```bash
