@@ -2,7 +2,6 @@ from contextlib import contextmanager
 from http import HTTPStatus
 
 import pytest
-
 from vocabs.models import Vocabulary
 
 
@@ -37,7 +36,7 @@ def test_list_prefixes(client):
 @pytest.mark.django_db
 def test_create_vocabulary(post, vocab_uri):
     response = post('/vocabs/', data={'uri': vocab_uri})
-    assert f'Vocabulary: Foo' in response.content.decode()
+    assert 'Vocabulary: Foo' in response.content.decode()
     assert len(Vocabulary.objects.all()) == 1
 
 
@@ -69,22 +68,22 @@ def test_create_and_update_vocabulary(post, vocab_uri):
         ('xml', 'application/rdf+xml; charset=utf-8'),
         ('ttl', 'text/turtle; charset=utf-8'),
         ('turtle', 'text/turtle; charset=utf-8'),
-        ('nt', 'application/n-triples; charset=us-ascii'),
-        ('ntriples', 'application/n-triples; charset=us-ascii'),
-        ('n-triples', 'application/n-triples; charset=us-ascii'),
+        ('nt', 'application/n-triples; charset=utf-8'),
+        ('ntriples', 'application/n-triples; charset=utf-8'),
+        ('n-triples', 'application/n-triples; charset=utf-8'),
     ]
 )
 @pytest.mark.django_db
 def test_graph(client, post, vocab_uri, format_param, expected_content_type):
     vocab_path = post('/vocabs/', data={'uri': vocab_uri}).wsgi_request.path
-    response = client.get(vocab_path + f'/graph', data={'format': format_param})
+    response = client.get(vocab_path + '/graph', data={'format': format_param})
     assert response.headers['Content-Type'] == expected_content_type
 
 
 @pytest.mark.django_db
 def test_graph_not_acceptable(client, post, vocab_uri):
     vocab_path = post('/vocabs/', data={'uri': vocab_uri}).wsgi_request.path
-    response = client.get(vocab_path + f'/graph', data={'format': 'NOT_A_VALID_FORMAT'})
+    response = client.get(vocab_path + '/graph', data={'format': 'NOT_A_VALID_FORMAT'})
     assert response.status_code == HTTPStatus.NOT_ACCEPTABLE
 
 
