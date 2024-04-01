@@ -124,3 +124,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+VOCAB_OUTPUT_DIR = Path(env.str('VOCAB_OUTPUT_DIR', default=BASE_DIR / 'public'))

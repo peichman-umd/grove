@@ -4,7 +4,7 @@ from os.path import basename
 from typing import Any, Counter
 
 from django.contrib import messages
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
@@ -17,7 +17,6 @@ from rdflib.util import from_n3
 
 from vocabs.forms import PropertyForm, NewVocabularyForm, VocabularyForm, ImportForm
 from vocabs.models import Predicate, Property, Term, Vocabulary, VOCAB_FORMAT_LABELS, import_vocabulary
-
 
 logger = logging.getLogger(__name__)
 
@@ -124,17 +123,11 @@ class GraphView(DetailView):
 
     def requested_content_type(self, default: str = 'json-ld') -> tuple[str, str]:
         format_param = self.request.GET.get('format', default)
-        match format_param:
-            case 'json-ld' | 'jsonld' | 'json':
-                return 'application/ld+json', 'utf-8'
-            case 'rdfxml' | 'rdf/xml' | 'rdf' | 'xml':
-                return 'application/rdf+xml', 'utf-8'
-            case 'ttl' | 'turtle':
-                return 'text/turtle', 'utf-8'
-            case 'nt' | 'ntriples' | 'n-triples':
-                return 'application/n-triples', 'utf-8'
-            case _:
-                raise ValueError(f'Unknown format: {format_param}')
+        for fmt in Vocabulary.OUTPUT_FORMATS:
+            if format_param in fmt.parameter_names:
+                return fmt.media_type, 'utf-8'
+
+        raise ValueError(f'Unknown format: {format_param}')
 
     def get(self, request, *args, **kwargs):
         graph, context = self.get_object().graph()
@@ -259,7 +252,9 @@ class ImportFormView(FormView):
             return super().form_invalid(form)
 
         if is_new or count['new_terms'] > 0 or count['new_properties'] > 0:
-            messages.success(self.request, message=f'Import successful: Vocabulary {"created" if is_new else "updated"}')
+            messages.success(
+                self.request, message=f'Import successful: Vocabulary {"created" if is_new else "updated"}'
+            )
             if count['new_terms'] > 0:
                 messages.info(self.request, message=f'Created {quantity(count, "new term")}.')
             if count['new_properties'] > 0:
@@ -272,3 +267,23 @@ class ImportFormView(FormView):
     def form_invalid(self, form):
         messages.error(self.request, message='Unable to import vocabulary')
         return super().form_invalid(form)
+
+
+class PublishedVocabularyView(DetailView):
+    model = Vocabulary
+
+    def get(self, request, *args, **kwargs):
+        vocab: Vocabulary = self.get_object()
+        if vocab.is_published:
+            return JsonResponse({'published': vocab.is_published, 'date': vocab.publication_date.isoformat()})
+        else:
+            return JsonResponse({'published': vocab.is_published})
+
+    def post(self, _request, *_args, **_kwargs):
+        publish = self.request.POST['publish'] == 'true'
+        if publish:
+            self.get_object().publish()
+        else:
+            self.get_object().unpublish()
+
+        return HttpResponseRedirect(reverse('show_vocabulary', kwargs={'pk': self.get_object().id}))

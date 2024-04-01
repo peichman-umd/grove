@@ -7,6 +7,14 @@
   <a href="{% url 'show_graph' pk=vocabulary.id %}?format={{ param }}" target="_blank">{{ label }}</a>
   {% endfor %}
 </p>
+<form method="post" action="{% url 'publish_vocabulary' pk=vocabulary.id %}">
+  {% csrf_token %}
+  {% if vocabulary.is_published %}
+  <button type="submit" name="publish" value="false">Unpublish</button>
+  {% else %}
+  <button type="submit" name="publish" value="true">Publish</button>
+  {% endif %}
+</form>
 
 <div id="forms">
   <div id="details">
