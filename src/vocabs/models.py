@@ -1,9 +1,10 @@
 import logging
 from collections import Counter
 from contextlib import contextmanager
+from datetime import datetime
 from os.path import basename
 from pathlib import PurePath
-from typing import IO, TextIO, TypeAlias
+from typing import IO, TextIO, TypeAlias, NamedTuple, cast
 from xml.sax import SAXParseException
 
 from django.core.validators import RegexValidator
@@ -14,6 +15,8 @@ from rdflib.namespace import NamespaceManager
 from rdflib.parser import InputSource
 from rdflib.plugin import PluginException
 from rdflib.util import from_n3
+
+from grove.settings import VOCAB_OUTPUT_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +50,13 @@ class Context(dict):
                 return
 
 
+class OutputFormat(NamedTuple):
+    media_type: str
+    extension: str
+    label: str
+    parameter_names: list[str]
+
+
 class Vocabulary(Model):
     class Meta:
         verbose_name_plural = 'vocabularies'
@@ -68,6 +78,10 @@ class Vocabulary(Model):
     def term_count(self) -> int:
         return self.terms.count()
 
+    @property
+    def basename(self) -> str:
+        return basename(cast(str, self.uri).rstrip('#/'))
+
     def graph(self) -> tuple[Graph, Context]:
         context = Context(
             namespace_manager=nsm,
@@ -76,7 +90,7 @@ class Vocabulary(Model):
             vann=str(vann),
         )
         graph = Graph()
-        vocab_subject = URIRef(self.uri)
+        vocab_subject = URIRef(cast(str, self.uri))
         if self.label:
             graph.add((vocab_subject, rdfs.label, Literal(self.label)))
         if self.description:
@@ -97,6 +111,41 @@ class Vocabulary(Model):
                 graph.add((s, p, o))
 
         return graph, context
+
+    OUTPUT_FORMATS = [
+        OutputFormat('application/ld+json', 'jsonld', 'JSON-LD', ['json', 'jsonld', 'json-ld']),
+        OutputFormat('text/turtle', 'ttl', 'Turtle', ['ttl', 'turtle']),
+        OutputFormat('application/rdf+xml', 'xml', 'RDF/XML', ['rdf', 'xml', 'rdfxml', 'rdf/xml']),
+        OutputFormat('application/n-triples', 'nt', 'N-Triples', ['nt', 'ntriples', 'n-triples']),
+    ]
+
+    def publish(self):
+        graph, context = self.graph()
+        for fmt in self.OUTPUT_FORMATS:
+            file = VOCAB_OUTPUT_DIR / (self.basename + '.' + fmt.extension)
+            with file.open(mode='wb') as fh:
+                graph.serialize(destination=fh, format=fmt.media_type, context=context, encoding='utf-8')
+            logger.info(f'Wrote {self} to {file} as {fmt.label}')
+
+    def unpublish(self):
+        for fmt in self.OUTPUT_FORMATS:
+            file = VOCAB_OUTPUT_DIR / (self.basename + '.' + fmt.extension)
+            file.unlink(missing_ok=True)
+
+    @property
+    def is_published(self) -> bool:
+        return all(
+            (VOCAB_OUTPUT_DIR / (self.basename + '.' + f.extension)).exists()
+            for f in self.OUTPUT_FORMATS
+        )
+
+    @property
+    def publication_date(self) -> datetime | None:
+        if not self.is_published:
+            return None
+        return datetime.fromtimestamp(
+            int((VOCAB_OUTPUT_DIR / (self.basename + '.' + self.OUTPUT_FORMATS[0].extension)).stat().st_mtime)
+        )
 
 
 class Term(Model):
