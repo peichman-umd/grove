@@ -6,7 +6,7 @@ dependencies = [
     "django-environ~=0.11",
     # By default, Plastron Utils is installed from Github.
     # To use a local version for development, uncomment the following 
-    # line and comment plastron-utils line with with Github URL
+    # line and comment the plastron-utils line with the Github URL
     # "plastron-utils~=4.0",
     "plastron-utils@git+https://github.com/umd-lib/plastron.git@4.0.0#subdirectory=plastron-utils",
     "rdflib~=7.0",
