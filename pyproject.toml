@@ -6,6 +6,8 @@ dependencies = [
     "django-environ~=0.11",
     "plastron-utils~=4.0",
     "rdflib~=7.0",
+    "waitress",
+    "whitenoise",
 ]
 
 [project.optional-dependencies]
