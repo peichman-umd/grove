@@ -14,6 +14,8 @@ from pathlib import Path
 
 from environ import Env
 
+from socket import gethostname, gethostbyname
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -34,8 +36,13 @@ SERVER_HOST = env.str('SERVER_HOST', '0.0.0.0')
 
 SERVER_PORT = env.str('SERVER_PORT', '5000')
 
-ALLOWED_HOSTS = []
+DOMAIN_NAME = env.str('DOMAIN_NAME', 'grove-local')
 
+# Default list of allowed hosts
+# - Add the IP address (used by k8s health probes)
+ALLOWED_HOSTS = [gethostbyname(gethostname())]
+
+ALLOWED_HOSTS.append(DOMAIN_NAME)
 
 # Application definition
 
