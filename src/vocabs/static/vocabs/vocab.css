@@ -92,11 +92,13 @@ form {
     color: black;
 }
 
+button.login,
 button.publish {
     background-color: var(--success);
     border-color: var(--success);
     color: white;
 }
+button.login:hover,
 button.publish:hover {
     background-color: var(--success-shaded);
     border-color: var(--success-shaded);
@@ -122,4 +124,21 @@ button.unpublish:hover {
     border: 1px solid var(--success);
     background-color: var(--success-subtle);
     color: var(--success);
+}
+
+.notice {
+    margin: 0 auto;
+    width: fit-content;
+    border: 1px solid var(--medium-gray);
+    border-radius: 5px;
+    text-align: center;
+}
+.notice>h1 {
+    font-size: 1.25em;
+    margin: 0;
+    padding: .25em;
+    border-bottom: 1px solid var(--light-gray);
+}
+.notice>p {
+    margin: 1em;
 }

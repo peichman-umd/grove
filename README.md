@@ -13,7 +13,7 @@ Requires:
 
 ### Setup
 
-Clone Plastron and Grove from GitHub:
+Clone Grove from GitHub:
 
 ```bash
 git clone git@github.com:umd-lib/grove
@@ -23,14 +23,50 @@ source .venv/bin/activate
 pip install -e .
 ```
 
+Install `libxmlsec1`. This is required for the SAML authentication using
+[djangosaml2].
+
+On Mac, it is available via Homebrew:
+
+```bash
+brew install xmlsec1
+```
+
+On Debian or Ubuntu Linux, it is available via `apt`:
+
+```bash
+sudo apt-get install xmlsec1
+```
+
+Update the `/etc/hosts` file to add:
+
+```
+127.0.0.1 grove-local
+```
+
 Create a `.env` file in the project base directory that looks like this:
 
 ```dotenv
+BASE_URL=http://grove-local:15001/
 DATABASE_URL=sqlite:///db.sqlite3
 DEBUG=True
+ENVIRONMENT=development
 # SECRET_KEY can be anything with sufficient randomness
 # one way of generating this is "uuidgen | shasum -a 256 | cut -c-64"
-SECRET_KEY=...
+SECRET_KEY=
+# SAML_KEY_FILE and SAML_CERT_FILE may be absolute or relative paths; if they
+# are relative they are relative to the project root directory
+# These can be downloaded from the grove-local-saml note in the Shared-SSDR 
+# folder on LastPass; note that local development ruses the key and cert 
+# from the test server, so the file basename is "grove-test-lib-umd-edu"
+SAML_KEY_FILE=
+SAML_CERT_FILE=
+# absolute path to the xmlsec1 binary
+# you can find this by running "which xmlsec1"
+XMLSEC1_PATH=
+# for local (i.e., non-HTTPS) development, we disable the secure cookie flag
+SAML_SESSION_COOKIE_SAMESITE=Lax
+SESSION_COOKIE_SECURE=False
 ```
 
 Initialize the database:
@@ -39,13 +75,20 @@ Initialize the database:
 ./src/manage.py migrate
 ```
 
-Run the application. The default port is 5000:
+Load the default set of predicates:
+
+```bash
+./src/manage.py load_predicates -f predicate.csv
+```
+
+Run the application. The default port is 15001; this is also the port that 
+is registered with DIT to allow SAML authentication to work from local:
 
 ```bash
 ./src/manage.py runserver
 ```
 
-The application will be running at <http://localhost:5000/>
+The application will be running at <http://grove-local:15001/>
 
 To change the port, provide an argument to `runserver`, e.g.:
 
@@ -158,5 +201,6 @@ GitHub for information about setting up a MacBook to use the Kubernetes
 
 [Django]: https://www.djangoproject.com/
 [Plastron]: https://github.com/umd-lib/plastron
+[djangosaml2]: https://djangosaml2.readthedocs.io/
 [pytest]: https://pytest.org/
 [pytest-django]: https://pytest-django.readthedocs.io/en/latest/

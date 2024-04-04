@@ -1,0 +1,10 @@
+{% extends 'vocabs/base.html' %}
+{% block content %}
+<div class="notice">
+  <h1>Login Required</h1>
+  <p>Access to {{ application_name }} is restricted to authorized users only.</p>
+  <form method="get" action="{% url 'saml2_login' %}">
+    <p><button class="login" type="submit">Log In</button></p>
+  </form>
+</div>
+{% endblock %}
