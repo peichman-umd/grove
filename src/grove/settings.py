@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import os
+
 from pathlib import Path
 
 from environ import Env
@@ -18,6 +20,9 @@ from socket import gethostname, gethostbyname
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Static file dir
+STATIC_ROOT = os.path.join(BASE_DIR, 'src/vocabs/static')
 
 # Take environment variables from .env file
 Env.read_env(BASE_DIR / '.env')
@@ -40,8 +45,13 @@ SERVER_PORT = env.str('SERVER_PORT', '5000')
 DOMAIN_NAME = env.str('DOMAIN_NAME', 'grove-local')
 
 # Default list of allowed hosts
-# - Add the IP address (used by k8s health probes)
-ALLOWED_HOSTS = [gethostbyname(gethostname())]
+ALLOWED_HOSTS = []
+
+# Add the IP address (used by k8s health probes)
+try:
+    ALLOWED_HOSTS.append(gethostbyname(gethostname()))
+except:
+    pass
 
 ALLOWED_HOSTS.append(DOMAIN_NAME)
 
@@ -92,8 +102,16 @@ WSGI_APPLICATION = 'grove.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+# Databases
 DATABASES = {
-    'default': env.db_url(),
+    'default': {
+        'ENGINE': env.str('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': env.str('DB_NAME', BASE_DIR / 'db.sqlite3'),
+        'USER': env.str('DB_USER', ''),
+        'PASSWORD': env.str('DB_PASSWORD', ''),
+        'HOST': env.str('DB_HOST', ''),
+        'PORT': env.str('DB_PORT', ''),
+    }
 }
 
 
