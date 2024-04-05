@@ -10,10 +10,13 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
+    "debugpy~=1.8",
+    "pipdeptree~=2.16",
     "pytest~=8.1",
     "pytest-cov~=4.1",
     "pytest-datadir~=1.5",
     "pytest-django~=4.8",
+    "ruff",
 ]
 
 [tool.pytest.ini_options]
@@ -26,3 +29,17 @@ omit = [
     "manage.py",
     "wsgi.py",
 ]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+# preview is required to enable many pycodestyle rules see
+# https://docs.astral.sh/ruff/rules/
+preview = true
+
+# Enable pycodestyle errors and warnings
+select = ["E", "W"]
