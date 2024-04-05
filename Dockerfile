@@ -16,7 +16,7 @@ WORKDIR /grove
 
 # Install dependencies
 COPY pyproject.toml .
-RUN pip install -e .
+RUN pip install -e .[prod]
 
 # Copy project
 COPY src ./src
