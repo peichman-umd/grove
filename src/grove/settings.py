@@ -55,10 +55,21 @@ except:
 
 ALLOWED_HOSTS.append(DOMAIN_NAME)
 
+PROJECT_PACKAGE_NAME = 'grove'
+APPLICATION_NAME = 'Grove'
+NAVIGATION_LINKS = {
+    'list_vocabularies': 'Vocabularies',
+    'list_predicates': 'Predicates',
+    'list_prefixes': 'Prefixes',
+    'import_form': 'Import',
+}
+ENVIRONMENT = env.str('ENVIRONMENT', 'development')
+
 # Application definition
 
 INSTALLED_APPS = [
     'vocabs',
+    'umd_lib_style',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -91,6 +102,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'umd_lib_style.context_processors.app_info',
             ],
         },
     },

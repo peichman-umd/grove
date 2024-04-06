@@ -4,6 +4,7 @@ version = "1.0.0-dev"
 dependencies = [
     "django~=5.0",
     "django-environ~=0.11",
+    "django-umd-lib-style@git+https://github.com/umd-lib/django-umd-lib-style.git",
     # By default, Plastron Utils is installed from Github.
     # To use a local version for development, uncomment the following 
     # line and comment the plastron-utils line with the Github URL
