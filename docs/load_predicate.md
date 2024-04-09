@@ -5,7 +5,7 @@
 The -f and --file arguments are the ones that really matter, the other options are just from inheriting Django's BaseCommand class.
 
 
-```python
+```zsh
 ❯ src/manage.py load_predicates -h
 usage: manage.py load_predicates [-h] -f FILE [--version] [-v {0,1,2,3}] [--settings SETTINGS] [--pythonpath PYTHONPATH] [--traceback] [--no-color] [--force-color] [--skip-checks]
 
