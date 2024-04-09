@@ -1,4 +1,4 @@
-from csv import reader
+from csv import DictReader
 from logging import getLogger
 
 from django.core.management.base import BaseCommand, CommandError
@@ -28,16 +28,22 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             with open(options["file"], "r", newline="") as csv_file:
-                csv_reader = reader(csv_file)
-                next(csv_reader)
+                csv_reader = DictReader(csv_file)
 
-                try:
-                    for predicate, object_type in csv_reader:
-                        logger.debug(f'Predicate: {predicate}, {object_type}')
-                        uri = from_n3(predicate, nsm=namespace_manager)
-                        Predicate.objects.get_or_create(uri=uri, object_type=object_type)
-                except ValueError as e:
-                    raise CommandError(f"Invalid CSV: {str(e)}") from e
+                for row in csv_reader:
+                    if None in row:
+                        raise CommandError(f'Invalid row, extra column found: {row[None]}')
+
+                    predicate = row['predicate']
+                    object_type = row['object_type']
+
+                    if predicate is None or object_type is None:
+                        raise CommandError(f'Invalid row: {predicate}, {object_type}')
+
+                    logger.debug(f'Row: {predicate}, {object_type}')
+
+                    uri = from_n3(predicate, nsm=namespace_manager)
+                    Predicate.objects.get_or_create(uri=uri, object_type=object_type)
 
         except IOError as e:
             raise CommandError(f"Invalid file: {str(e)}") from e
