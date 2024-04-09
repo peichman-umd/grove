@@ -29,8 +29,8 @@ def test_load_predicates(datadir, filename, uri, object_type, curie):
 @pytest.mark.parametrize(
     ('filename', 'message'),
     [
-        ('test3.csv', 'Invalid CSV'),
-        ('test4.csv', 'Invalid CSV'),
+        ('test3.csv', 'Invalid row'),
+        ('test4.csv', 'Invalid row'),
         ('invalid_file_path', 'Invalid file')
     ]
 )
