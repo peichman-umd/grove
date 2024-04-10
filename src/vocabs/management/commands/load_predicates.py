@@ -42,8 +42,8 @@ class Command(BaseCommand):
 
                     logger.debug(f'Row: {predicate}, {object_type}')
 
-                    uri = from_n3(predicate, nsm=namespace_manager)
-                    Predicate.objects.get_or_create(uri=uri, object_type=object_type)
+                    uri = from_n3(predicate.strip(), nsm=namespace_manager)
+                    Predicate.objects.get_or_create(uri=uri, object_type=object_type.strip())
 
         except IOError as e:
             raise CommandError(f"Invalid file: {str(e)}") from e
