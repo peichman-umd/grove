@@ -1,0 +1,6 @@
+predicate,object_type
+rdfs:label,Literal
+owl:sameAs,URIRef
+rdfs:subClassOf,URIRef
+dcterms:description,Literal
+dcterms:isPartOf,URIRef
