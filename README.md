@@ -80,7 +80,7 @@ To build and run locally
 
 ```zsh
 # Build
-docker build -t grove:latest .
+docker build -t docker.lib.umd.edu/grove:latest .
 
 # Run
 docker run -it \
@@ -89,7 +89,7 @@ docker run -it \
 -e SECRET_KEY=$(uuidgen | shasum -a 256 | cut -c-64) \
 -e SERVER_PORT=5000 \
 -p 5000:5000 \
-grove:latest
+docker.lib.umd.edu/grove:latest
 ```
 
 ## Building the Docker Image for K8s Deployment
@@ -155,11 +155,6 @@ GitHub for information about setting up a MacBook to use the Kubernetes
     ```
 
    The Docker image will be automatically pushed to the Nexus.
-
-## License
-
-See the [LICENSE](LICENSE.md) file for license rights and limitations (Apache
-2.0).
 
 [Django]: https://www.djangoproject.com/
 [Plastron]: https://github.com/umd-lib/plastron

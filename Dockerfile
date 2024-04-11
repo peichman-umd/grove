@@ -12,7 +12,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Set work directory
-WORKDIR /grove
+WORKDIR /opt/grove
 
 # Install dependencies
 COPY pyproject.toml .
