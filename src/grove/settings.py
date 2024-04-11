@@ -10,12 +10,19 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import os
+
 from pathlib import Path
 
 from environ import Env
 
+from socket import gethostname, gethostbyname
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Static file dir
+STATIC_ROOT = os.path.join(BASE_DIR, 'src/vocabs/static')
 
 # Take environment variables from .env file
 Env.read_env(BASE_DIR / '.env')
@@ -27,11 +34,26 @@ env = Env()
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env.str('SECRET_KEY')
 
+# Set Debug to True to enable detailed error pages (for development debugging)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', False)
 
+SERVER_HOST = env.str('SERVER_HOST', '0.0.0.0')
+
+SERVER_PORT = env.str('SERVER_PORT', '5000')
+
+DOMAIN_NAME = env.str('DOMAIN_NAME', 'grove-local')
+
+# Default list of allowed hosts
 ALLOWED_HOSTS = []
 
+# Add the IP address (used by k8s health probes)
+try:
+    ALLOWED_HOSTS.append(gethostbyname(gethostname()))
+except:
+    pass
+
+ALLOWED_HOSTS.append(DOMAIN_NAME)
 
 # Application definition
 
@@ -47,6 +69,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -79,8 +102,16 @@ WSGI_APPLICATION = 'grove.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+# Databases
 DATABASES = {
-    'default': env.db_url(),
+    'default': {
+        'ENGINE': env.str('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': env.str('DB_NAME', BASE_DIR / 'db.sqlite3'),
+        'USER': env.str('DB_USER', ''),
+        'PASSWORD': env.str('DB_PASSWORD', ''),
+        'HOST': env.str('DB_HOST', ''),
+        'PORT': env.str('DB_PORT', ''),
+    }
 }
 
 
@@ -126,3 +157,36 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 VOCAB_OUTPUT_DIR = Path(env.str('VOCAB_OUTPUT_DIR', default=BASE_DIR / 'public'))
+
+# Logging
+LOGGING = {
+    'version': 1,  # the dictConfig format version
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'formatters': {
+        'verbose': {
+            'format': '{name} {levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': env.str('LOGGING_LEVEL', 'INFO'),
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': env.str('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+    },
+}
