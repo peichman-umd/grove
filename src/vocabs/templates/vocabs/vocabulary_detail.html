@@ -1,5 +1,8 @@
 {% extends 'vocabs/base.html' %}
 {% block content %}
+{% if vocabulary.is_published %}
+<p>Status: <strong class="status published">Published</strong></p>
+{% endif %}
 <p>
   <a href="{{ vocabulary.uri }}">{{ vocabulary.uri }}</a>
   — Preview as:
@@ -10,24 +13,24 @@
 <form method="post" action="{% url 'publish_vocabulary' pk=vocabulary.id %}">
   {% csrf_token %}
   {% if vocabulary.is_published %}
-  <button type="submit" name="publish" value="false">Unpublish</button>
+  <button class="unpublish" type="submit" name="publish" value="false">Unpublish</button>
   {% else %}
-  <button type="submit" name="publish" value="true">Publish</button>
+  <button class="publish" type="submit" name="publish" value="true">Publish</button>
   {% endif %}
 </form>
 
 <div id="forms">
-  <div id="details">
-    <h2>Details</h2>
+  <details id="details">
+    <summary><h2>Details</h2></summary>
     <form method="post" action="{% url 'show_vocabulary' pk=vocabulary.id %}">
       {% csrf_token %}
       {{ form }}
-      <button type="submit">Update</button>
+      <button class="update" type="submit">Update</button>
     </form>
-  </div>
+  </details>
 
-  <div id="terms">
-  <h2>Terms</h2>
+  <details id="terms" open>
+    <summary><h2>Terms</h2></summary>
     <table>
       <thead>
       <tr>
@@ -43,10 +46,10 @@
       {% endfor %}
       </tbody>
     </table>
-  </div>
+  </details>
 
-  <div id="new-terms">
-    <h2>Create New Term</h2>
+  <details id="new-terms" open>
+    <summary><h2>Create New Term</h2></summary>
     <form method="post" action="{% url 'list_terms' pk=vocabulary.id %}">
       {% csrf_token %}
       <input name="term_name" placeholder="Name" />
@@ -55,9 +58,9 @@
         <option value="rdfs:Class">Class</option>
         <option value="rdfs:Datatype">Datatype</option>
       </select>
-      <button type="submit" hx-post="{% url 'list_terms' pk=vocabulary.id %}" hx-target="previous tbody" hx-swap="beforeend">Add Term</button>
+      <button class="create" type="submit" hx-post="{% url 'list_terms' pk=vocabulary.id %}" hx-target="previous tbody" hx-swap="beforeend">Add Term</button>
     </form>
-  </div>
+  </details>
 </div>
 
 <script>

@@ -4,5 +4,7 @@
 {% else %}
 {{ property.value }}
 {% endif %}
-<button hx-get="{% url 'edit_property' pk=property.id %}" hx-target="closest .property">Edit</button>
-<button class="delete" hx-delete="{% url 'show_property' pk=property.id %}" hx-swap="delete" hx-target="closest .property">Delete</button>
+<span class="controls">
+  <button class="edit" hx-get="{% url 'edit_property' pk=property.id %}" hx-target="closest .property" title="Edit">✎</button>
+  <button class="delete" hx-delete="{% url 'show_property' pk=property.id %}" hx-swap="delete" hx-target="closest .property" title="Delete">╳</button>
+</span>

@@ -1,39 +1,10 @@
-nav {
-    margin: 1em 0;
-}
-nav>ul {
-    padding: 0;
-}
-nav>ul>li {
-    display: inline;
-}
-nav>ul>li+li:before {
-    content: ' | ';
-}
-table {
-    border-collapse: collapse;
-}
-
-th,
-td {
-    border: 1px solid #666;
-    padding: .5em;
-}
-
-th {
-    background-color: #ddd;
-}
-
 td {
     vertical-align: top;
 }
 
-tbody tr:nth-child(2n) {
-    background-color: #eee;
-}
-
-.properties-header {
-    width: 40em;
+fieldset {
+    display: inline-block;
+    border: none;
 }
 
 ul {
@@ -42,12 +13,13 @@ ul {
     list-style-type: none;
 }
 
-.term li>button,
+.property>.controls>button,
 .term td select {
     opacity: 0.25;
+    padding: .125em .5em;
 }
 
-.term li:hover>button,
+.property:hover>.controls>button,
 .term td:hover select {
     opacity: 1.0;
 }
@@ -63,10 +35,11 @@ form {
 
 .form-fields {
     display: grid;
-    grid-template-columns: max-content 1fr;
+    grid-template-columns: auto 1fr;
     grid-column-gap: 0.5em;
     grid-row-gap: .75em;
 }
+
 .form-fields>dt {
     text-align: right;
 }
@@ -77,56 +50,76 @@ form {
 .required {
     font-weight: bold;
 }
-
-.errorlist {
-    padding: 0;
-    margin-top: .25em;
-    color: red;
-}
-.errorlist li:before,
-.messages>.error:before {
-    content: '❗ ';
-}
-.messages>.success:before {
-    content: '✔️ ';
+.required+dd:after {
+    content: '(required)';
+    padding-left: .5em;
+    font-style: italic;
 }
 
-.messages>li {
-    border: 2px solid;
-    padding: .5rem;
-}
-.messages>.success {
-    border-color: green;
-    background: #dfd;
-}
-.messages>.error {
-    border-color: red;
-    background: #fdd;
-}
-.messages>.info {
-    border-color: blue;
-    background: lightblue;
+
+.form-fields dt {
+    padding: .5em 0;
 }
 
-#forms {
+.property {
     display: grid;
-    grid-template-areas:
-    "details terms"
-    "new-terms terms";
-    grid-auto-rows: auto 1fr;
-    grid-column-gap: 2rem;
+    grid-template-columns: auto auto 1fr;
+    grid-template-rows: 100%;
+    grid-column-gap: .5em;
+    align-items: center;
 }
-#details {
-    grid-area: details;
+.property:hover {
+    background-color: var(--info-subtle);
 }
-#terms {
-    grid-area: terms;
-}
-#new-terms {
-    grid-area: new-terms;
+.property>.controls {
+    display: inline-block;
+    padding-left: 2em;
+    text-align: right;
 }
 
-textarea {
-    font-family: sans-serif;
-    font-size: 13px;
+.property>.controls>button {
+    background-color: var(--light-gray);
+    color: black;
+}
+.property>.controls>button.delete:hover {
+    background-color: var(--danger);
+    border-color: var(--danger);
+    color: white;
+}
+.property>.controls>button.edit:hover {
+    background-color: var(--info);
+    border-color: var(--info);
+    color: black;
+}
+
+button.publish {
+    background-color: var(--success);
+    border-color: var(--success);
+    color: white;
+}
+button.publish:hover {
+    background-color: var(--success-shaded);
+    border-color: var(--success-shaded);
+    color: white;
+}
+
+button.unpublish {
+    background-color: var(--warning);
+    border-color: var(--warning);
+    color: black;
+}
+button.unpublish:hover {
+    background-color: var(--warning-shaded);
+    border-color: var(--warning-shaded);
+    color: white;
+}
+
+.status {
+    padding: .125em .5em;
+    border-radius: 5px;
+}
+.status.published {
+    border: 1px solid var(--success);
+    background-color: var(--success-subtle);
+    color: var(--success);
 }
