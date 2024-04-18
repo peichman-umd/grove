@@ -16,20 +16,31 @@ def vocab_uri() -> str:
 
 
 @pytest.fixture
-def post(client):
+def post(admin_client):
     def _post(url: str, **kwargs):
-        return client.post(url, follow=True, **kwargs)
+        return admin_client.post(url, follow=True, **kwargs)
     return _post
 
 
+def test_site_root_unauthenticated(client):
+    response = client.get('/')
+    assert 'Login Required' in response.content.decode()
+
+
+def test_site_root_authenticated(admin_client):
+    response = admin_client.get('/')
+    assert response.status_code == 302
+    assert response.headers['Location'] == '/vocabs/'
+
+
 @pytest.mark.django_db
-def test_list_vocabularies(client):
-    response = client.get('/vocabs', follow=True)
+def test_list_vocabularies(admin_client):
+    response = admin_client.get('/vocabs', follow=True)
     assert 'Vocabularies' in response.content.decode()
 
 
-def test_list_prefixes(client):
-    response = client.get('/vocabs/prefixes', follow=True)
+def test_list_prefixes(admin_client):
+    response = admin_client.get('/prefixes', follow=True)
     assert 'Prefixes' in response.content.decode()
 
 
@@ -74,21 +85,21 @@ def test_create_and_update_vocabulary(post, vocab_uri):
     ]
 )
 @pytest.mark.django_db
-def test_graph(client, post, vocab_uri, format_param, expected_content_type):
+def test_graph(admin_client, post, vocab_uri, format_param, expected_content_type):
     vocab_path = post('/vocabs/', data={'uri': vocab_uri}).wsgi_request.path
-    response = client.get(vocab_path + '/graph', data={'format': format_param})
+    response = admin_client.get(vocab_path + '/graph', data={'format': format_param})
     assert response.headers['Content-Type'] == expected_content_type
 
 
 @pytest.mark.django_db
-def test_graph_not_acceptable(client, post, vocab_uri):
+def test_graph_not_acceptable(admin_client, post, vocab_uri):
     vocab_path = post('/vocabs/', data={'uri': vocab_uri}).wsgi_request.path
-    response = client.get(vocab_path + '/graph', data={'format': 'NOT_A_VALID_FORMAT'})
+    response = admin_client.get(vocab_path + '/graph', data={'format': 'NOT_A_VALID_FORMAT'})
     assert response.status_code == HTTPStatus.NOT_ACCEPTABLE
 
 
 @pytest.mark.django_db
-def test_import_vocabulary(datadir, client, post, vocab_uri):
+def test_import_vocabulary(datadir, post, vocab_uri):
     with (datadir / 'foo.ttl').open() as fh:
-        response = post('/vocabs/import', data={'uri': vocab_uri, 'rdf_format': 'text/turtle', 'file': fh})
+        response = post('/import', data={'uri': vocab_uri, 'rdf_format': 'text/turtle', 'file': fh})
     assert response.status_code == HTTPStatus.OK

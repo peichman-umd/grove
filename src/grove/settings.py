@@ -14,7 +14,11 @@ import os
 
 from pathlib import Path
 
+import saml2.saml
+import saml2.xmldsig
+from django.core.management.commands.runserver import Command as runserver
 from environ import Env
+from urlobject import URLObject
 
 from socket import gethostname, gethostbyname
 
@@ -28,41 +32,38 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'src/vocabs/static')
 Env.read_env(BASE_DIR / '.env')
 env = Env()
 
+BASE_URL = URLObject(env.str('BASE_URL', 'http://localhost:5000/'))
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env.str('SECRET_KEY')
+SECRET_KEY = env('SECRET_KEY')
 
 # Set Debug to True to enable detailed error pages (for development debugging)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', False)
 
 SERVER_HOST = env.str('SERVER_HOST', '0.0.0.0')
-
-SERVER_PORT = env.str('SERVER_PORT', '5000')
+SERVER_PORT = env.str('SERVER_PORT', '15001')
+runserver.default_addr = SERVER_HOST
+runserver.default_port = SERVER_PORT
 
 DOMAIN_NAME = env.str('DOMAIN_NAME', 'grove-local')
 
 # Default list of allowed hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [BASE_URL.hostname]
 
 # Add the IP address (used by k8s health probes)
 try:
     ALLOWED_HOSTS.append(gethostbyname(gethostname()))
-except:
+except OSError:
+    # ignore if we can't get the IP address
     pass
-
-ALLOWED_HOSTS.append(DOMAIN_NAME)
 
 PROJECT_PACKAGE_NAME = 'grove'
 APPLICATION_NAME = 'Grove'
-NAVIGATION_LINKS = {
-    'list_vocabularies': 'Vocabularies',
-    'list_predicates': 'Predicates',
-    'list_prefixes': 'Prefixes',
-    'import_form': 'Import',
-}
+NAVIGATION_LINKS = 'vocabs.urls.get_navigation_links'
 ENVIRONMENT = env.str('ENVIRONMENT', 'development')
 
 # Application definition
@@ -76,6 +77,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'djangosaml2',
 ]
 
 MIDDLEWARE = [
@@ -87,6 +89,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'djangosaml2.middleware.SamlSessionMiddleware',
 ]
 
 ROOT_URLCONF = 'grove.urls'
@@ -126,6 +129,15 @@ DATABASES = {
     }
 }
 
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'grove.auth.ModifiedSaml2Backend',
+)
+
+LOGIN_URL = '/saml2/login/'
+# default to the vocabulary list page after login
+LOGIN_REDIRECT_URL = '/vocabs'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -201,4 +213,149 @@ LOGGING = {
             'propagate': False,
         },
     },
+}
+
+# SameSite Cookies
+# The storage linked to it is accessible by default at request.saml_session.
+SAML_SESSION_COOKIE_NAME = 'saml_session'
+# By default, djangosaml2 will set “SameSite=None” for the SAML session cookie.
+SAML_SESSION_COOKIE_SAMESITE = env('SAML_SESSION_COOKIE_SAMESITE')
+# Remember that in your browser “SameSite=None” attribute MUST also have the “Secure” attribute,
+# which is required in order to use “SameSite=None”, otherwise the cookie will be blocked.
+SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE')
+
+# Handling Post-Login Redirects
+SAML_ALLOWED_HOSTS = env('SAML_ALLOWED_HOSTS', cast=[str], default=ALLOWED_HOSTS)
+
+SAML_DEFAULT_BINDING = saml2.BINDING_HTTP_POST
+SAML_LOGOUT_REQUEST_PREFERRED_BINDING = saml2.BINDING_HTTP_POST
+SAML_IGNORE_LOGOUT_ERRORS = True
+
+# Users, attributes and account linking
+SAML_CREATE_UNKNOWN_USER = True
+SAML_ATTRIBUTE_MAPPING = {
+    'uid': ('username',),
+    'mail': ('email',),
+    'givenName': ('first_name',),
+    'urn:mace:umd.edu:sn': ('last_name',),
+}
+
+SAML_CONFIG = {
+    # full path to the xmlsec1 binary program
+    'xmlsec_binary': env('XMLSEC1_PATH'),
+
+    # your entity id, usually your subdomain plus the url to the metadata view
+    'entityid': str(BASE_URL.netloc),
+
+    # directory with attribute mapping
+    'attribute_map_dir': str(BASE_DIR / 'attribute-maps'),
+
+    # Permits to have attributes not configured in attribute-mappings
+    # otherwise...without OID will be rejected
+    'allow_unknown_attributes': True,
+
+    # this block states what services we provide
+    'service': {
+        # we are just a lonely SP
+        'sp': {
+            'name': 'Grove',
+            'name_id_format': saml2.saml.NAMEID_FORMAT_TRANSIENT,
+            # Define the authentication context
+            'requested_authn_context': {
+                'authn_context_class_ref': [
+                    'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport',
+                    'urn:oasis:names:tc:SAML:2.0:ac:classes:TLSClient',
+                ],
+                'comparison': 'minimum',
+            },
+
+            # For Okta add signed logout requests. Enable this:
+            # "logout_requests_signed": True,
+
+            'endpoints': {
+                # url and binding to the assertion consumer service view
+                # do not change the binding or service name
+                'assertion_consumer_service': [
+                    (str(BASE_URL.with_path('/saml2/acs/')), saml2.BINDING_HTTP_POST),
+                ],
+                # url and binding to the single logout service view
+                # do not change the binding or service name
+                'single_logout_service': [
+                    # Disable next two lines for HTTP_REDIRECT for IDPs that only support HTTP_POST. Ex. Okta:
+                    (str(BASE_URL.with_path('/saml2/ls/')), saml2.BINDING_HTTP_REDIRECT),
+                    (str(BASE_URL.with_path('/saml2/ls/post/')), saml2.BINDING_HTTP_POST),
+                ],
+            },
+
+            'signing_algorithm': saml2.xmldsig.SIG_RSA_SHA256,
+            'digest_algorithm': saml2.xmldsig.DIGEST_SHA256,
+
+            # Mandates that the identity provider MUST authenticate the
+            # presenter directly rather than rely on a previous security context.
+            'force_authn': False,
+
+            # Enable AllowCreate in NameIDPolicy.
+            'name_id_format_allow_create': False,
+
+            # attributes that this project need to identify a user
+            'required_attributes': ['givenName', 'sn', 'mail', 'eduPersonEntitlement'],
+
+            # attributes that may be useful to have but not required
+            'optional_attributes': [],
+
+            'want_response_signed': False,
+            'authn_requests_signed': True,
+            'logout_requests_signed': True,
+            # Indicates that Authentication Responses to this SP must
+            # be signed. If set to True, the SP will not consume
+            # any SAML Responses that are not signed.
+            'want_assertions_signed': False,
+
+            'only_use_keys_in_metadata': True,
+
+            # When set to true, the SP will consume unsolicited SAML
+            # Responses, i.e. SAML Responses for which it has not sent
+            # a respective SAML Authentication Request.
+            'allow_unsolicited': True,
+
+            # in this section the list of IdPs we talk to are defined
+            # This is not mandatory! All the IdP available in the metadata will be considered instead.
+            'idp': {
+                # we do not need a WAYF service since there is
+                # only an IdP defined here. This IdP should be
+                # present in our metadata
+
+                # the keys of this dictionary are entity ids
+                'https://shib.idm.umd.edu/shibboleth-idp/shibboleth': {
+                    'single_sign_on_service': {
+                        saml2.BINDING_HTTP_POST: 'https://shib.idm.umd.edu/shibboleth-idp/profile/SAML2/POST/SSO',
+                    },
+                    'single_logout_service': {
+                        saml2.BINDING_HTTP_REDIRECT: 'https://shib.idm.umd.edu/shibboleth-idp/profile/Logout',
+                    },
+                },
+            },
+        },
+    },
+
+    # where the remote metadata is stored, local, remote or mdq server.
+    # One metadata store or many ...
+    'metadata': {
+        'remote': [
+            {'url': 'https://shib.idm.umd.edu/shibboleth-idp/shibboleth'},
+        ],
+    },
+
+    # set to 1 to output debugging information
+    'debug': 1,
+
+    # Signing
+    'key_file': str(BASE_DIR / env('SAML_KEY_FILE')),
+    'cert_file': str(BASE_DIR / env('SAML_CERT_FILE')),
+
+    # Encryption
+    'encryption_keypairs': [{
+        'key_file': str(BASE_DIR / env('SAML_KEY_FILE')),
+        'cert_file': str(BASE_DIR / env('SAML_CERT_FILE')),
+    }],
 }

@@ -19,7 +19,7 @@ from django.http import HttpResponseRedirect
 from django.urls import include, path, reverse
 
 urlpatterns = [
-    path('', lambda _: HttpResponseRedirect(reverse('list_vocabularies'))),
+    path('', include('vocabs.urls')),
     path('admin/', admin.site.urls),
-    path('vocabs/', include('vocabs.urls'))
+    path('saml2/', include('djangosaml2.urls')),
 ]

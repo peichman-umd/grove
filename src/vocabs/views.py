@@ -4,6 +4,7 @@ from os.path import basename
 from typing import Any, Counter
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.defaultfilters import pluralize
@@ -21,7 +22,20 @@ from vocabs.models import Predicate, Property, Term, Vocabulary, VOCAB_FORMAT_LA
 logger = logging.getLogger(__name__)
 
 
-class PrefixList(TemplateView):
+class RootView(TemplateView):
+    template_name = 'vocabs/login_required.html'
+
+    def get(self, request, *args, **kwargs):
+        """If the user is already logged in, send them to the vocab list page.
+        Otherwise, display the "Login Required" page."""
+
+        if request.user.is_authenticated:
+            return HttpResponseRedirect(reverse('list_vocabularies'))
+        else:
+            return super().get(request, *args, **kwargs)
+
+
+class PrefixList(LoginRequiredMixin, TemplateView):
     template_name = 'vocabs/prefix_list.html'
 
     def get_context_data(self, **kwargs):
@@ -34,7 +48,7 @@ class PrefixList(TemplateView):
         return context
 
 
-class IndexView(ListView):
+class IndexView(LoginRequiredMixin, ListView):
     model = Vocabulary
     context_object_name = 'vocabularies'
 
@@ -57,7 +71,7 @@ class IndexView(ListView):
         return HttpResponseRedirect(reverse('list_vocabularies'))
 
 
-class VocabularyView(UpdateView):
+class VocabularyView(LoginRequiredMixin, UpdateView):
     model = Vocabulary
     form_class = VocabularyForm
     context_object_name = 'vocabulary'
@@ -87,7 +101,7 @@ class VocabularyView(UpdateView):
         return super().form_invalid(form)
 
 
-class TermsView(View):
+class TermsView(LoginRequiredMixin, View):
     model = Vocabulary
     context_object_name = 'vocabulary'
 
@@ -118,7 +132,7 @@ class TermsView(View):
         return HttpResponseRedirect(reverse('show_vocabulary', args=(pk,)))
 
 
-class GraphView(DetailView):
+class GraphView(LoginRequiredMixin, DetailView):
     model = Vocabulary
 
     def requested_content_type(self, default: str = 'json-ld') -> tuple[str, str]:
@@ -142,7 +156,7 @@ class GraphView(DetailView):
         )
 
 
-class TermView(DetailView):
+class TermView(LoginRequiredMixin, DetailView):
     model = Term
     context_object_name = 'term'
 
@@ -152,7 +166,7 @@ class TermView(DetailView):
         return HttpResponse(status=HTTPStatus.OK)
 
 
-class PropertyView(DetailView):
+class PropertyView(LoginRequiredMixin, DetailView):
     model = Property
     context_object_name = 'property'
 
@@ -162,7 +176,7 @@ class PropertyView(DetailView):
         return HttpResponse(status=HTTPStatus.OK)
 
 
-class NewPropertyView(CreateView):
+class NewPropertyView(LoginRequiredMixin, CreateView):
     model = Property
     form_class = PropertyForm
     template_name = 'vocabs/new_property.html'
@@ -182,7 +196,7 @@ class NewPropertyView(CreateView):
         return reverse('show_property', args=(self.object.id,))
 
 
-class PropertyEditView(UpdateView):
+class PropertyEditView(LoginRequiredMixin, UpdateView):
     model = Property
     form_class = PropertyForm
 
@@ -197,7 +211,7 @@ class PropertyEditView(UpdateView):
         return reverse('show_property', args=(self.object.id,))
 
 
-class PredicatesView(ListView):
+class PredicatesView(LoginRequiredMixin, ListView):
     model = Predicate
 
     def get_context_data(self, *, object_list=None, **kwargs):
@@ -231,7 +245,7 @@ def quantity(count: Counter, term: str) -> str:
     return f'{number} {base}{pluralize(number, suffixes)}'
 
 
-class ImportFormView(FormView):
+class ImportFormView(LoginRequiredMixin, FormView):
     form_class = ImportForm
     template_name = 'vocabs/import_form.html'
 
@@ -269,7 +283,7 @@ class ImportFormView(FormView):
         return super().form_invalid(form)
 
 
-class PublishedVocabularyView(DetailView):
+class PublishedVocabularyView(LoginRequiredMixin, DetailView):
     model = Vocabulary
 
     def get(self, request, *args, **kwargs):

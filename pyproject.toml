@@ -4,13 +4,15 @@ version = "1.0.0-dev"
 dependencies = [
     "django~=5.0",
     "django-environ~=0.11",
-    "django-umd-lib-style@git+https://github.com/umd-lib/django-umd-lib-style.git",
+    "djangosaml2~=1.9",
+    "django-umd-lib-style@git+https://github.com/umd-lib/django-umd-lib-style.git@main",
     # By default, Plastron Utils is installed from Github.
     # To use a local version for development, uncomment the following 
     # line and comment the plastron-utils line with the Github URL
     # "plastron-utils~=4.0",
     "plastron-utils@git+https://github.com/umd-lib/plastron.git@4.0.0#subdirectory=plastron-utils",
     "rdflib~=7.0",
+    'urlobject~=2.4',
     "waitress~=3.0",
     "whitenoise~=6.6",
 ]
@@ -26,7 +28,7 @@ test = [
     "pytest-cov~=4.1",
     "pytest-datadir~=1.5",
     "pytest-django~=4.8",
-    "ruff",
+    "ruff~=0.3",
 ]
 
 [tool.pytest.ini_options]

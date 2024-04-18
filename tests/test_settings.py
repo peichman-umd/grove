@@ -4,7 +4,7 @@ from grove import settings
 
 
 def test_environment_variables(monkeypatch):
-    monkeypatch.setenv('DATABASE_URL', 'sqlite:///test-db.sqlite3')
+    monkeypatch.setenv('DB_NAME', 'test-db.sqlite3')
     monkeypatch.setenv('DEBUG', 'False')
     monkeypatch.setenv('SECRET_KEY', 'foobar')
     reload(settings)
