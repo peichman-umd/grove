@@ -3,7 +3,7 @@ FROM python:3.11.4-slim
 
 # Install git
 RUN apt-get update && \
-    apt-get install -y git && \
+    apt-get install -y git xmlsec1 && \
     apt-get clean
 
 # Set environment variables
