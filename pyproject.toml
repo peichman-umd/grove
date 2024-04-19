@@ -1,6 +1,6 @@
 [project]
 name = "grove"
-version = "1.0.0-dev"
+version = "1.0.0-dev1"
 dependencies = [
     "django~=5.0",
     "django-environ~=0.11",
