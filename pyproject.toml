@@ -2,6 +2,7 @@
 name = "grove"
 version = "1.0.0-dev1"
 dependencies = [
+    "click~=8.1",
     "django~=5.0",
     "django-environ~=0.11",
     "djangosaml2~=1.9",
@@ -30,6 +31,9 @@ test = [
     "pytest-django~=4.8",
     "ruff~=0.3",
 ]
+
+[project.scripts]
+grove = "grove.server:run"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "grove.settings"
