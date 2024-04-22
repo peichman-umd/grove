@@ -32,6 +32,7 @@ Env.read_env(BASE_DIR / '.env')
 env = Env()
 
 BASE_URL = URLObject(env.str('BASE_URL', 'http://localhost:5000/'))
+CSRF_TRUSTED_ORIGINS = [str(BASE_URL.with_path(''))]
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
