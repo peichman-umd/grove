@@ -9,7 +9,6 @@ in RDF.
 Requires:
 
 * Python 3.11
-* [Plastron] 4.0+ source code
 
 ### Setup
 
@@ -57,7 +56,7 @@ SECRET_KEY=
 # SAML_KEY_FILE and SAML_CERT_FILE may be absolute or relative paths; if they
 # are relative they are relative to the project root directory
 # These can be downloaded from the grove-local-saml note in the Shared-SSDR 
-# folder on LastPass; note that local development ruses the key and cert 
+# folder on LastPass; note that local development uses the key and cert 
 # from the test server, so the file basename is "grove-test-lib-umd-edu"
 SAML_KEY_FILE=
 SAML_CERT_FILE=
