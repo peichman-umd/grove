@@ -100,6 +100,11 @@ class VocabularyView(LoginRequiredMixin, UpdateView):
         messages.error(self.request, message='Vocabulary cannot be updated due to validation errors')
         return super().form_invalid(form)
 
+    @method_decorator(ensure_csrf_cookie)
+    def delete(self, *_args, **_kwargs):
+        self.get_object().delete()
+        return HttpResponse(status=HTTPStatus.OK)
+
 
 class TermsView(LoginRequiredMixin, View):
     model = Vocabulary
