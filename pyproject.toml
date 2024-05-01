@@ -8,7 +8,7 @@ dependencies = [
     "djangosaml2~=1.9",
     "django-umd-lib-style@git+https://github.com/umd-lib/django-umd-lib-style.git@main",
     # By default, Plastron Utils is installed from Github.
-    # To use a local version for development, uncomment the following 
+    # To use a local version for development, uncomment the following
     # line and comment the plastron-utils line with the Github URL
     # "plastron-utils~=4.0",
     "plastron-utils@git+https://github.com/umd-lib/plastron.git@4.0.0#subdirectory=plastron-utils",
@@ -48,6 +48,10 @@ omit = [
 
 [tool.ruff]
 line-length = 120
+exclude = [
+  # Ignore auto-generated "migrations" directories
+  "migrations"
+]
 
 [tool.ruff.format]
 quote-style = "single"
