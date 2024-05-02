@@ -1,0 +1,51 @@
+// Largely taken from https://github.com/devcontainers/images/blob/main/src/python/.devcontainer/devcontainer.json
+{
+  "name": "Grove",
+  "build": {
+    "dockerfile": "../Dockerfile.vscode"
+  },
+
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2":{
+        "installZsh": "true",
+        "configureZshAsDefaultShell": true,
+        "username": "vscode",
+        "userUid": "1000",
+        "userGid": "1000"
+        //"upgradePackages": "true"
+    },
+    "ghcr.io/devcontainers/features/python:1": "none",
+    "ghcr.io/devcontainers/features/git:1": {
+        "version": "latest",
+        "ppa": "false"
+    }
+},
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+
+  // Use 'postCreateCommand' to run commands after the container is created.
+  "postCreateCommand": "pip install -e '.[test]'",
+
+  // Configure tool-specific properties.
+  // "customizations": {},
+
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  "remoteUser": "vscode",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "davidanson.vscode-markdownlint",
+        "eamodio.gitlens"
+      ],
+      // Set *default* container specific settings.json values on container create.
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      }
+    }
+  }
+}

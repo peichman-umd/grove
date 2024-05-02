@@ -160,4 +160,12 @@ cython_debug/
 #.idea/
 
 public
+
+# SAML key/certificate files
+**/grove*.cer
+**/grove*.key
+
 staticfiles
+
+# Ruff cache
+.ruff_cache

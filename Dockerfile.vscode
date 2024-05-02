@@ -1,0 +1,10 @@
+# Pull base image
+FROM python:3.11.4-slim
+
+# Install git, vim, and xmlsec1
+RUN apt-get update && \
+    apt-get install -y git vim xmlsec1 && \
+    apt-get clean
+
+# Set vim as the default editor for Git
+ENV GIT_EDITOR=vim
