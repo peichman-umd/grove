@@ -51,11 +51,14 @@ for setting up a development environment using a VS Code Dev container.
     ```
 
 3) Download the `grove-test-lib-umd-edu-sp.key` and
-  `grove-test-lib-umd-edu-sp.cer` files from the  "grove-local-saml" entry in
+  `grove-test-lib-umd-edu-sp.crt` files from the  "grove-local-saml" entry in
    LastPass into the "grove" directory.
 
     ℹ️ Note: These files can be placed in an directory outside the project,
-    if desired.
+    if desired. Also, when downloading the `grove-test-lib-umd-edu-sp.crt`
+    file, Google Chrome will modify the file extension, by default, to ".cer".
+    Be sure to to specify the ".crt" extension when downloading the file.
+    Mozilla Firefox preserves the ".crt" extension.
 
 4) Copy the "env_example" file to ".env":
 
@@ -68,7 +71,7 @@ for setting up a development environment using a VS Code Dev container.
     * SAML_KEY_FILE - relative (or absolute) file path to the
       `grove-test-lib-umd-edu-sp.key` file
     * SAML_CERT_FILE - relative (or absolute) file path to the
-      ``grove-test-lib-umd-edu-sp.cer` file
+      ``grove-test-lib-umd-edu-sp.crt` file
     * SECRET_KEY - Either comment out (a random key will be automatically
       generated), or populate with anything with sufficient randomness,
       i.e. `uuidgen | shasum -a 256 | cut -c-64`

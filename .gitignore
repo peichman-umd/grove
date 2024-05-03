@@ -163,6 +163,7 @@ public
 
 # SAML key/certificate files
 **/grove*.cer
+**/grove*.crt
 **/grove*.key
 
 staticfiles

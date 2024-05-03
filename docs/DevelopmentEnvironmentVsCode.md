@@ -35,9 +35,14 @@ for setting up a development environment locally.
    The dev container will build the Docker image (if necessary), and install
    Python dependencies.
 
-3) Download the `grove-test-lib-umd-edu-sp.cer` and
+3) Download the `grove-test-lib-umd-edu-sp.crt` and
    `grove-test-lib-umd-edu-sp.key` files from the  "grove-local-saml" entry in
    LastPass into the "grove" directory.
+
+   ℹ️ Note: When downloading the `grove-test-lib-umd-edu-sp.crt` file, Google
+   Chrome will modify the file extension by default to ".cer". Be sure to to
+   specify the ".crt" extension when downloading the file. Mozilla Firefox
+   preserves the ".crt" extension.
 
 4) In a VS Code terminal, run the following command to create a `.env` file
    in the project base directory, and populates it with default values:
@@ -45,7 +50,7 @@ for setting up a development environment locally.
     ```zsh
     cp env_example .env &&
        sed -i '/SAML_KEY_FILE=/cSAML_KEY_FILE=grove-test-lib-umd-edu-sp.key' .env &&
-       sed -i '/SAML_CERT_FILE=/cSAML_CERT_FILE=grove-test-lib-umd-edu-sp.cer' .env &&
+       sed -i '/SAML_CERT_FILE=/cSAML_CERT_FILE=grove-test-lib-umd-edu-sp.crt' .env &&
        sed -i '/SECRET_KEY=/c#SECRET_KEY=' .env
        sed -i '/XMLSEC1_PATH=/cXSMLSEC1_PATH=/usr/bin/xmlsec1' .env
     ```
