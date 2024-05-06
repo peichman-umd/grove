@@ -9,6 +9,7 @@ from xml.sax import SAXParseException
 
 from django.core.validators import RegexValidator
 from django.db.models import CASCADE, PROTECT, CharField, ForeignKey, Model, TextChoices
+from django_extensions.db.models import TimeStampedModel
 from plastron.namespaces import dc, namespace_manager as nsm, rdfs
 from rdflib import Graph, Literal, URIRef, Namespace
 from rdflib.namespace import NamespaceManager
@@ -57,7 +58,7 @@ class OutputFormat(NamedTuple):
     parameter_names: list[str]
 
 
-class Vocabulary(Model):
+class Vocabulary(TimeStampedModel):
     class Meta:
         verbose_name_plural = 'vocabularies'
 
@@ -148,7 +149,7 @@ class Vocabulary(Model):
         )
 
 
-class Term(Model):
+class Term(TimeStampedModel):
     vocabulary = ForeignKey(Vocabulary, on_delete=CASCADE, related_name='terms')
     name = CharField(max_length=256)
 
@@ -185,7 +186,7 @@ class Predicate(Model):
         return Property.objects.filter(predicate=self).count()
 
 
-class Property(Model):
+class Property(TimeStampedModel):
     class Meta:
         verbose_name_plural = 'properties'
 
