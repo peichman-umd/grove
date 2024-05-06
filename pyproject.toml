@@ -6,6 +6,7 @@ dependencies = [
     "django~=5.0",
     "django-environ~=0.11",
     "django-extensions~=3.2",
+    "django-safedelete~=1.3",
     "djangosaml2~=1.9",
     "django-umd-lib-style@git+https://github.com/umd-lib/django-umd-lib-style.git@main",
     # By default, Plastron Utils is installed from Github.
