@@ -3,7 +3,7 @@ from freezegun import freeze_time
 import pytest
 from plastron.namespaces import rdfs
 
-from vocabs.models import Vocabulary, Term, vann, Predicate, Property
+from vocabs.models import Vocabulary, Term, Predicate, Property
 
 created_timestamp = '2024-04-20T12:34:56Z'
 modified_timestamp = '2024-05-01T23:00:00Z'
@@ -106,3 +106,39 @@ def test_property_deleted_timestamp_set_when_property_is_deleted(prop):
         prop.delete()
         assert prop.modified == datetime.datetime.fromisoformat(deleted_timestamp)
         assert prop.deleted == datetime.datetime.fromisoformat(deleted_timestamp)
+
+
+@pytest.mark.django_db
+def test_vocabulary_delete_hard_deletes_dependent_term_and_property(vocab, prop):
+    assert 1 == len(Vocabulary.objects.all())
+    assert 1 == len(Term.objects.all())
+    assert 1 == len(Property.objects.all())
+
+    vocab.delete()
+
+    # Verify hard delete
+    assert 0 == len(Vocabulary.objects.all())
+    assert 0 == len(Term.objects.all())
+    assert 0 == len(Term.objects.all_with_deleted())
+    assert 0 == len(Property.objects.all())
+    assert 0 == len(Property.objects.all_with_deleted())
+
+    # Predicate model _not_ deleted
+    assert 1 == len(Predicate.objects.all())
+
+
+@pytest.mark.django_db
+def test_term_soft_delete_also_soft_deletes_dependent_property(term, prop):
+    assert 1 == len(Term.objects.all())
+    assert 1 == len(Property.objects.all())
+
+    term.delete()
+
+    # Verify soft delete
+    assert 0 == len(Term.objects.all())
+    assert 1 == len(Term.objects.all_with_deleted())
+    assert 0 == len(Property.objects.all())
+    assert 1 == len(Property.objects.all_with_deleted())
+
+    # Predicate model _not_ deleted
+    assert 1 == len(Predicate.objects.all())

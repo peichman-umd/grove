@@ -16,6 +16,7 @@ from rdflib.namespace import NamespaceManager
 from rdflib.parser import InputSource
 from rdflib.plugin import PluginException
 from rdflib.util import from_n3
+from safedelete.config import SOFT_DELETE_CASCADE
 from safedelete.models import SafeDeleteModel
 
 from grove.settings import VOCAB_OUTPUT_DIR
@@ -151,6 +152,9 @@ class Vocabulary(TimeStampedModel):
 
 
 class Term(TimeStampedModel, SafeDeleteModel):
+    # Use SOFT_DELETE_CASCADE policy to ensure that dependent Property models
+    # are also soft-deleted (instead of not being deleted at all).
+    _safedelete_policy = SOFT_DELETE_CASCADE
     vocabulary = ForeignKey(Vocabulary, on_delete=CASCADE, related_name='terms')
     name = CharField(max_length=256)
 
