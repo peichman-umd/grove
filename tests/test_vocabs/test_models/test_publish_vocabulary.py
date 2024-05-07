@@ -57,13 +57,3 @@ def test_unpublish_vocabulary_removes_files(datadir, create_vocab):
     # unpublish should remove all the files
     for file in published_files(vocabulary=vocabulary, vocab_output_dir=datadir):
         assert not file.exists()
-
-
-@pytest.mark.django_db
-def test_unpublished_vocab_has_no_publication_date(create_vocab):
-    assert create_vocab(published=False).publication_date is None
-
-
-@pytest.mark.django_db
-def test_published_vocab_has_publication_date(create_vocab):
-    assert create_vocab(published=True).publication_date is not None

@@ -99,7 +99,8 @@ Stores the timestamp when the Vocabulary record was last published.
 
 Initally empty (`None`) when the Vocabulary record is created.
 
-Updated whenever the Vocabulary is published.
+Updated whenever the Vocabulary record is published, and unset (back to `None`)
+if the Vocabulary record is unpublished.
 
 ## Deletion
 

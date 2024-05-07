@@ -44,6 +44,8 @@ def prop(term, predicate):
 def test_vocabulary_initial_timestamps(vocab):
     assert vocab.created == datetime.datetime.fromisoformat(created_timestamp)
     assert vocab.modified == datetime.datetime.fromisoformat(created_timestamp)
+    assert vocab.updated == datetime.datetime.fromisoformat(created_timestamp)
+    assert vocab.published is None
 
 
 @pytest.mark.django_db
@@ -223,3 +225,22 @@ def test_vocabulary_updated_timestamp(predicate):
         term.delete()
 
         assert vocab.updated == term_deleted_time
+
+
+@pytest.mark.django_db
+def test_vocabulary_published_timestamp(vocab):
+    assert vocab.published is None
+    assert vocab.is_published is False
+
+    current_timestamp = '2024-07-15T18:45:22Z'
+    with freeze_time(current_timestamp) as frozen_datetime:
+        vocab_publish_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+        vocab.publish()
+        vocab.refresh_from_db()
+        assert vocab.published == vocab_publish_time
+        assert vocab.is_published is True
+
+        vocab.unpublish()
+        vocab.refresh_from_db()
+        assert vocab.published is None
+        assert vocab.is_published is False

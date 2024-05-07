@@ -1,14 +1,14 @@
 import logging
 from collections import Counter
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from os.path import basename
 from pathlib import PurePath
 from typing import IO, TextIO, TypeAlias, NamedTuple, cast
 from xml.sax import SAXParseException
 
 from django.core.validators import RegexValidator
-from django.db.models import CASCADE, PROTECT, CharField, ForeignKey, Model, TextChoices
+from django.db.models import CASCADE, PROTECT, CharField, DateTimeField, ForeignKey, Model, TextChoices
 from django_extensions.db.models import TimeStampedModel
 from plastron.namespaces import dc, namespace_manager as nsm, rdfs
 from rdflib import Graph, Literal, URIRef, Namespace
@@ -68,6 +68,7 @@ class Vocabulary(TimeStampedModel):
     label = CharField(max_length=256)
     description = CharField(max_length=1024, blank=True)
     preferred_prefix = CharField(max_length=32, blank=True)
+    published = DateTimeField(editable=False, null=True)
 
     def __str__(self) -> str:
         return str(self.uri)
@@ -143,25 +144,20 @@ class Vocabulary(TimeStampedModel):
                 graph.serialize(destination=fh, format=fmt.media_type, context=context, encoding='utf-8')
             logger.info(f'Wrote {self} to {file} as {fmt.label}')
 
+        self.published = datetime.now(timezone.utc)
+        self.save()
+
     def unpublish(self):
+        self.published = None
+        self.save()
+
         for fmt in self.OUTPUT_FORMATS:
             file = VOCAB_OUTPUT_DIR / (self.basename + '.' + fmt.extension)
             file.unlink(missing_ok=True)
 
     @property
     def is_published(self) -> bool:
-        return all(
-            (VOCAB_OUTPUT_DIR / (self.basename + '.' + f.extension)).exists()
-            for f in self.OUTPUT_FORMATS
-        )
-
-    @property
-    def publication_date(self) -> datetime | None:
-        if not self.is_published:
-            return None
-        return datetime.fromtimestamp(
-            int((VOCAB_OUTPUT_DIR / (self.basename + '.' + self.OUTPUT_FORMATS[0].extension)).stat().st_mtime)
-        )
+        return self.published is not None
 
 
 class Term(TimeStampedModel, SafeDeleteModel):
