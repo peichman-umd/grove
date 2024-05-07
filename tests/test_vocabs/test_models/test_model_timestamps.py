@@ -142,3 +142,84 @@ def test_term_soft_delete_also_soft_deletes_dependent_property(term, prop):
 
     # Predicate model _not_ deleted
     assert 1 == len(Predicate.objects.all())
+
+
+@pytest.mark.django_db
+def test_vocabulary_updated_timestamp(predicate):
+    with freeze_time(created_timestamp) as frozen_datetime:
+        # New vocabulary
+        vocab_added_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+        vocab = Vocabulary(uri='http://example.com/foo#')
+        vocab.save()
+
+        assert vocab.created == vocab_added_time
+        assert vocab.modified == vocab_added_time
+        assert vocab.updated == vocab_added_time
+
+        # New Term
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        term_added_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+        term = Term(name='bar', vocabulary=vocab)
+        term.save()
+
+        assert vocab.created == vocab_added_time
+        assert vocab.modified == vocab_added_time
+        assert vocab.updated == term_added_time
+
+        # New Property
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        prop_added_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+        prop = Property(term=term, predicate=predicate, value='Bar')
+        prop.save()
+
+        assert vocab.created == vocab_added_time
+        assert vocab.modified == vocab_added_time
+        assert vocab.updated == prop_added_time
+
+        # Vocabulary modification
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        vocab_modified_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+        vocab.description = "update vocab"
+        vocab.save()
+
+        assert vocab.created == vocab_added_time
+        assert vocab.modified == vocab_modified_time
+        assert vocab.updated == vocab_modified_time
+
+        # Term modification
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        term_modified_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+        term.description = "update term"
+        term.save()
+
+        assert vocab.modified == vocab_modified_time
+        assert term.modified == term_modified_time
+        assert vocab.updated == term_modified_time
+
+        # Property modification
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        prop_modified_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+
+        prop.value = "update prop"
+        prop.save()
+
+        assert vocab.modified == vocab_modified_time
+        assert term.modified == term_modified_time
+        assert prop.modified == prop_modified_time
+        assert vocab.updated == prop_modified_time
+
+        # Property deletion
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        prop_deleted_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+
+        prop.delete()
+
+        assert vocab.updated == prop_deleted_time
+
+        # Term deletion
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        term_deleted_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+
+        term.delete()
+
+        assert vocab.updated == term_deleted_time

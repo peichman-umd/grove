@@ -122,6 +122,19 @@ class Vocabulary(TimeStampedModel):
         OutputFormat('application/n-triples', 'nt', 'N-Triples', ['nt', 'ntriples', 'n-triples']),
     ]
 
+    @property
+    def updated(self):
+        """
+        Returns timestamp when this Vocabulary or any of its dependent Term or
+        Property model was last changed (added, modified, or deleted)
+        """
+        most_recent_update = self.modified
+        for term in self.terms.all_with_deleted():
+            most_recent_update = most_recent_update if most_recent_update > term.modified else term.modified
+            for prop in term.properties.all_with_deleted():
+                most_recent_update = most_recent_update if most_recent_update > prop.modified else prop.modified
+        return most_recent_update
+
     def publish(self):
         graph, context = self.graph()
         for fmt in self.OUTPUT_FORMATS:
