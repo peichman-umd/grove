@@ -7,6 +7,7 @@ from vocabs.models import Vocabulary, Term, vann, Predicate, Property
 
 created_timestamp = '2024-04-20T12:34:56Z'
 modified_timestamp = '2024-05-01T23:00:00Z'
+deleted_timestamp = '2024-06-15T16:24:52Z'
 
 
 @pytest.fixture
@@ -59,6 +60,7 @@ def test_vocabalary_modified_timestamp_changed_when_vocabulary_is_changed(vocab)
 def test_term_initial_timestamps(term):
     assert term.created == datetime.datetime.fromisoformat(created_timestamp)
     assert term.modified == datetime.datetime.fromisoformat(created_timestamp)
+    assert term.deleted is None
 
 
 @pytest.mark.django_db
@@ -69,12 +71,22 @@ def test_term_modified_timestamp_changed_when_term_is_changed(term):
 
         assert term.created == datetime.datetime.fromisoformat(created_timestamp)
         assert term.modified == datetime.datetime.fromisoformat(modified_timestamp)
+        assert term.deleted is None
+
+
+@pytest.mark.django_db
+def test_term_deleted_timestamp_set_when_term_is_deleted(term):
+    with freeze_time(deleted_timestamp):
+        term.delete()
+        assert term.modified == datetime.datetime.fromisoformat(deleted_timestamp)
+        assert term.deleted == datetime.datetime.fromisoformat(deleted_timestamp)
 
 
 @pytest.mark.django_db
 def test_property_initial_timestamps(prop):
     assert prop.created == datetime.datetime.fromisoformat(created_timestamp)
     assert prop.modified == datetime.datetime.fromisoformat(created_timestamp)
+    assert prop.deleted is None
 
 
 @pytest.mark.django_db
@@ -85,3 +97,12 @@ def test_property_modified_timestamp_changed_when_property_is_changed(prop):
 
         assert prop.created == datetime.datetime.fromisoformat(created_timestamp)
         assert prop.modified == datetime.datetime.fromisoformat(modified_timestamp)
+        assert prop.deleted is None
+
+
+@pytest.mark.django_db
+def test_property_deleted_timestamp_set_when_property_is_deleted(prop):
+    with freeze_time(deleted_timestamp):
+        prop.delete()
+        assert prop.modified == datetime.datetime.fromisoformat(deleted_timestamp)
+        assert prop.deleted == datetime.datetime.fromisoformat(deleted_timestamp)

@@ -16,6 +16,7 @@ from rdflib.namespace import NamespaceManager
 from rdflib.parser import InputSource
 from rdflib.plugin import PluginException
 from rdflib.util import from_n3
+from safedelete.models import SafeDeleteModel
 
 from grove.settings import VOCAB_OUTPUT_DIR
 
@@ -149,7 +150,7 @@ class Vocabulary(TimeStampedModel):
         )
 
 
-class Term(TimeStampedModel):
+class Term(TimeStampedModel, SafeDeleteModel):
     vocabulary = ForeignKey(Vocabulary, on_delete=CASCADE, related_name='terms')
     name = CharField(max_length=256)
 
@@ -186,7 +187,7 @@ class Predicate(Model):
         return Property.objects.filter(predicate=self).count()
 
 
-class Property(TimeStampedModel):
+class Property(TimeStampedModel, SafeDeleteModel):
     class Meta:
         verbose_name_plural = 'properties'
 

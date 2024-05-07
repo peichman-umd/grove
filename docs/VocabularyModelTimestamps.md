@@ -25,14 +25,15 @@ The following are the timestamps available for each model:
 
 | Timestamp | Vocabulary | Term | Property |
 | --------- | ---------- | ---- | -------- |
-| created   | (/)        | (/)  | (/)      |
-| modified  | (/)        | (/)  | (/)      |
-| deleted   |            | (/)  | (/)      |
-| updated   | (/)        |      |          |
-| published | (/)        |      |          |
+| created   | ✅         | ✅   | ✅       |
+| modified  | ✅         | ✅   | ✅       |
+| deleted   |            | ✅   | ✅       |
+| updated   | ✅         |      |          |
+| published | ✅         |      |          |
 
 * created - the timestamp the database record was created
-* modified - the timestamp the database record was last changed.
+* modified - the timestamp the database record was last changed (including
+  soft deletion for `Term` and `Property` models, as an implementation detail)
 * deleted - The timestamp the database record was "soft deleted"
 * updated - The latest timestamp for the "modified" field of the `Vocabulary`
   model, or any of its dependent `Term` or `Property` models.
@@ -104,21 +105,25 @@ Updated whenever the Vocabulary is published.
 
 The `Term` and `Property` records are "soft deleted", in that when a user
 request their removal, the records remain in the database with a field
-indicating they have been deleted.
+indicating the timestamp of the deletion.
+
+ℹ️ **Implementation Note:** The "django-safedelete" library that is used to
+implement soft deletion also modifies the "modified" timestamp when a record
+is deleted.
 
 This was done to more easily support the implemention of the "updated" method
-on the `Vocabaulary` model, as it can query both the "modified" and "deleted"
-timestamps of its dependent `Term` and `Property` entries to determine the
-timestamp of the latest change.
+on the `Vocabaulary` model, as it can query both the "modified" timestamp (and
+"deleted" timestamp, if necessary) of its dependent `Term` and `Property`
+entries to determine the timestamp of the latest change.
 
-The `Vocabulary` model is "hard deleted", and will automatically removed its
-dependented `Term` and `Property` entries in a cascade delete.
+The `Vocabulary` model is "hard deleted", and will automatically perform hard
+deletes on its dependent `Term` and `Property` entries in a cascade delete.
 
 ## Database Migration Notes
 
 When running the migration to add the "created" and "modfied" fields to the
 `Vocabulary`, `Term`, and `Property` models, against a database that does not
-have such a fields, the existing rows in the database will have thei
+have such a fields, the existing rows in the database will have their
  "created" and "modified" fields populated with the current time.
 
 [django-extensions]: https://django-extensions.readthedocs.io/en/latest/model_extensions.html
