@@ -36,11 +36,12 @@ The following are the timestamps available for each model:
   soft deletion for `Term` and `Property` models, as an implementation detail)
 * deleted - The timestamp the database record was "soft deleted"
 * updated - The latest timestamp for the "modified" field of the `Vocabulary`
-  model, or any of its dependent `Term` or `Property` models.
-* published - The timestamp that the 'Vocabulary` record was last published
+  model, or any of its dependent `Term` or `Property` models
+* published - The timestamp that the `Vocabulary` record was last published
 
-The "updated" timestamp is *not* stored in the database. It is instead available
-as a method on the Vocabulary model.
+The "updated" timestamp is *not* stored in the database. It is instead
+calculated programmatically from the vocabulary and its dependent terms and
+properties.
 
 ### Timestamp field naming
 
@@ -105,7 +106,7 @@ if the Vocabulary record is unpublished.
 ## Deletion
 
 The `Term` and `Property` records are "soft deleted", in that when a user
-request their removal, the records remain in the database with a field
+requests their removal, the records remain in the database with a field
 indicating the timestamp of the deletion.
 
 This was done to more easily support the implemention of the "updated" method
@@ -131,9 +132,10 @@ strictly necessary parts of the design:
   model, which, when saved, would normally result in the "django-extensions"
   library setting the "modified" timestamp to the time of the save (i.e.,
   *after* the "published" timestamp). This throws off the logic for the
-  "has_updated" method. As a fix, on publication, the "published" and "modified"
-  timestamps for the vocabulary are set to the same timestamp, directly in the
-  database (bypassing "django-extensions" library functionality).
+  "has_updated" method. To avoid this, on publication, the "published" and
+  "modified" timestamps for the vocabulary are set to the same timestamp,
+  directly in the database (bypassing "django-extensions" library
+  functionality).
 
 ## Database Migration Notes
 
