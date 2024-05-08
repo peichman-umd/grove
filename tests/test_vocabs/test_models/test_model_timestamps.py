@@ -1,4 +1,5 @@
 import datetime
+import vocabs
 from freezegun import freeze_time
 import pytest
 from plastron.namespaces import rdfs
@@ -228,7 +229,8 @@ def test_vocabulary_updated_timestamp(predicate):
 
 
 @pytest.mark.django_db
-def test_vocabulary_published_timestamp(vocab):
+def test_vocabulary_published_timestamp(vocab, monkeypatch, datadir):
+    monkeypatch.setattr(vocabs.models, 'VOCAB_OUTPUT_DIR', datadir)
     assert vocab.published is None
     assert vocab.is_published is False
 
@@ -247,7 +249,8 @@ def test_vocabulary_published_timestamp(vocab):
 
 
 @pytest.mark.django_db
-def test_vocabulary_modified_and_published_timestamps_set_to_same_time_on_publish(vocab):
+def test_vocabulary_modified_and_published_timestamps_set_to_same_time_on_publish(vocab, monkeypatch, datadir):
+    monkeypatch.setattr(vocabs.models, 'VOCAB_OUTPUT_DIR', datadir)
     # This test verifies that the "published" and "modified" timestamps are set
     # to the same timestamp when a vocabulary is published. This test is needed
     # because when changing the "published" timestamp for publication, the
@@ -263,7 +266,8 @@ def test_vocabulary_modified_and_published_timestamps_set_to_same_time_on_publis
 
 
 @pytest.mark.django_db
-def test_vocabulary_has_updated(vocab, predicate):
+def test_vocabulary_has_updated(vocab, predicate, monkeypatch, datadir):
+    monkeypatch.setattr(vocabs.models, 'VOCAB_OUTPUT_DIR', datadir)
     with freeze_time(created_timestamp) as frozen_datetime:
         vocab_added_time = frozen_datetime().replace(tzinfo=datetime.UTC)
         current_time = frozen_datetime().replace(tzinfo=datetime.UTC)
