@@ -108,10 +108,6 @@ The `Term` and `Property` records are "soft deleted", in that when a user
 request their removal, the records remain in the database with a field
 indicating the timestamp of the deletion.
 
-ℹ️ **Implementation Note:** The "django-safedelete" library that is used to
-implement soft deletion also modifies the "modified" timestamp when a record
-is deleted.
-
 This was done to more easily support the implemention of the "updated" method
 on the `Vocabaulary` model, as it can query both the "modified" timestamp (and
 "deleted" timestamp, if necessary) of its dependent `Term` and `Property`
@@ -119,6 +115,25 @@ entries to determine the timestamp of the latest change.
 
 The `Vocabulary` model is "hard deleted", and will automatically perform hard
 deletes on its dependent `Term` and `Property` entries in a cascade delete.
+
+## Implementation Notes
+
+The following are notes related to the existing implementation, and are not
+strictly necessary parts of the design:
+
+* The "django-safedelete" library that is used to implement soft deletion also
+  modifies the "modified" timestamp when a record is deleted. Therefore, when
+  checking whether a `Term` or `Property` has changed (either via modification
+  or deletion), only the "modified" timestamp needs to be checked (as along as
+  all soft-deleted entries are included in the check).
+
+* Publishing a vocabulary updates the "published" timestamp on the `Vocabulary`
+  model, which, when saved, would normally result in the "django-extensions"
+  library setting the "modified" timestamp to the time of the save (i.e.,
+  *after* the "published" timestamp). This throws off the logic for the
+  "has_updated" method. As a fix, on publication, the "published" and "modified"
+  timestamps for the vocabulary are set to the same timestamp, directly in the
+  database (bypassing "django-extensions" library functionality).
 
 ## Database Migration Notes
 
