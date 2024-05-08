@@ -136,6 +136,14 @@ class Vocabulary(TimeStampedModel):
                 most_recent_update = most_recent_update if most_recent_update > prop.modified else prop.modified
         return most_recent_update
 
+    @property
+    def has_updated(self):
+        """
+        Returns True if this Vocabulary, or any of its dependent Term o
+        Property models have changes that have not been published.
+        """
+        return not self.is_published or (self.updated > self.published)
+
     def publish(self):
         graph, context = self.graph()
         for fmt in self.OUTPUT_FORMATS:
@@ -144,8 +152,14 @@ class Vocabulary(TimeStampedModel):
                 graph.serialize(destination=fh, format=fmt.media_type, context=context, encoding='utf-8')
             logger.info(f'Wrote {self} to {file} as {fmt.label}')
 
-        self.published = datetime.now(timezone.utc)
-        self.save()
+        # Set "published" and "modified" fields directly using queryset instead
+        # of using `self.published = datetime.now(timezone.utc)` to avoid the
+        # situation where a `self.save()` results in the "modified" timestamp
+        # being set to a few milliseconds later, throwing off the "has_updated"
+        # check.
+        current_time = datetime.now(timezone.utc)
+        Vocabulary.objects.filter(pk=self.pk).update(published=current_time, modified=current_time)
+        self.refresh_from_db()
 
     def unpublish(self):
         self.published = None

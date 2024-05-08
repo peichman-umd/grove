@@ -244,3 +244,133 @@ def test_vocabulary_published_timestamp(vocab):
         vocab.refresh_from_db()
         assert vocab.published is None
         assert vocab.is_published is False
+
+
+@pytest.mark.django_db
+def test_vocabulary_modified_and_published_timestamps_set_to_same_time_on_publish(vocab):
+    # This test verifies that the "published" and "modified" timestamps are set
+    # to the same timestamp when a vocabulary is published. This test is needed
+    # because when changing the "published" timestamp for publication, the
+    # the "modified" timestamp would normally be set to the moment when the
+    # vocabulary is saved, which would be _after_ the "published" timestamp,
+    # resulting in the "has_updated" flag returning an incorrect result.
+
+    # This test should _not_ freeze time
+
+    vocab.publish()
+    assert vocab.published is not None
+    assert vocab.modified == vocab.published
+
+
+@pytest.mark.django_db
+def test_vocabulary_has_updated(vocab, predicate):
+    with freeze_time(created_timestamp) as frozen_datetime:
+        vocab_added_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+        current_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+
+        # New vocabulary
+        assert vocab.created == vocab_added_time
+        assert vocab.updated == vocab_added_time
+        assert vocab.has_updated is True
+        assert vocab.published is None
+
+        vocab.publish()
+
+        assert vocab.has_updated is False
+        assert vocab.published == current_time
+
+        # New Term
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        current_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+
+        term = Term(name='bar', vocabulary=vocab)
+        term.save()
+
+        assert vocab.has_updated is True
+
+        vocab.publish()
+
+        assert vocab.has_updated is False
+        assert vocab.published == current_time
+
+        # New Property
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        current_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+
+        prop = Property(term=term, predicate=predicate, value='Bar')
+        prop.save()
+
+        assert vocab.has_updated is True
+
+        vocab.publish()
+
+        assert vocab.has_updated is False
+        assert vocab.published == current_time
+
+        # Vocabulary modification
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        current_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+
+        vocab.description = "update vocab"
+        vocab.save()
+
+        assert vocab.has_updated is True
+
+        vocab.publish()
+
+        assert vocab.has_updated is False
+        assert vocab.published == current_time
+
+        # Term modification
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        current_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+
+        term.description = "update term"
+        term.save()
+
+        assert vocab.has_updated is True
+
+        vocab.publish()
+
+        assert vocab.has_updated is False
+        assert vocab.published == current_time
+
+        # Property modification
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        current_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+
+        prop.value = "update prop"
+        prop.save()
+
+        assert vocab.has_updated is True
+
+        vocab.publish()
+
+        assert vocab.has_updated is False
+        assert vocab.published == current_time
+
+        # Property deletion
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        current_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+
+        prop.delete()
+
+        assert vocab.has_updated is True
+
+        vocab.publish()
+
+        assert vocab.has_updated is False
+        assert vocab.published == current_time
+
+        # Term deletion
+        frozen_datetime.tick(delta=datetime.timedelta(days=32))
+        current_time = frozen_datetime().replace(tzinfo=datetime.UTC)
+
+        term.delete()
+
+        assert vocab.has_updated is True
+
+        vocab.publish()
+
+        assert vocab.has_updated is False
+        assert vocab.published == current_time
