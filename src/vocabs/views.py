@@ -294,7 +294,7 @@ class PublishedVocabularyView(LoginRequiredMixin, DetailView):
     def get(self, request, *args, **kwargs):
         vocab: Vocabulary = self.get_object()
         if vocab.is_published:
-            return JsonResponse({'published': vocab.is_published, 'date': vocab.publication_date.isoformat()})
+            return JsonResponse({'published': vocab.is_published, 'date': vocab.published.isoformat()})
         else:
             return JsonResponse({'published': vocab.is_published})
 

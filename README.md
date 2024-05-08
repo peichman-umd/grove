@@ -4,6 +4,14 @@ Grove RDF Ontology and Vocabulary Editor is a [Django]-based web
 application for creating, editing, and publishing controlled vocabularies
 in RDF.
 
+## Additional Documentation
+
+Additional documentation for this application is in the "docs/" subdirectory,
+including:
+
+* [Load Predicates](docs/load_predicate.md)
+* [Vocabulary Model Timestamps](docs/VocabularyModelTimestamps.md)
+
 ## Development Environment Setup
 
 * [VS Code Dev Container Setup](docs/DevelopmentEnvironmentVsCode.md)
