@@ -6,6 +6,7 @@ from typing import Any, Counter
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404, render
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
@@ -20,6 +21,48 @@ from vocabs.forms import PropertyForm, NewVocabularyForm, VocabularyForm, Import
 from vocabs.models import Predicate, Property, Term, Vocabulary, VOCAB_FORMAT_LABELS, import_vocabulary
 
 logger = logging.getLogger(__name__)
+
+
+class PublishUpdatesMixin():
+    """Adds a 'Publish Updates' on database changes via HTMX"""
+
+    def dispatch(self, request, *args, **kwargs):
+        response = super().dispatch(request, *args, **kwargs)
+
+        if hasattr(response, 'is_rendered') and not response.is_rendered:
+            # For TemplateViews, need to call "render" first to ensure that
+            # "response.content" is populated
+            response.render()
+
+        publish_updates_button = render_to_string(
+            'vocabs/publish_updates_button.html',
+            {'show_publish_updates_button': self.vocabulary_has_updated()}
+        )
+        response.content = response.content + bytes(publish_updates_button, 'utf-8')
+
+        return response
+
+    def vocabulary_has_updated(self):
+        """Returns True if the Vocabulary has been updated, False otherwise."""
+
+        # Assume any DELETE or POST requests result in an update. This is
+        # needed because we can't retrieve the object on DELETE requests,
+        # and some POSTS (such as from TermsView) don't use templates, and
+        # so don't respond to "self.get_object".
+        if self.request.method == 'DELETE' or self.request.method == 'POST':
+            return True
+
+        obj = self.get_object()
+
+        match obj:
+            case Property():
+                return obj.term.vocabulary.has_updated
+            case Term():
+                return obj.vocabulary.has_updated
+            case Vocabulary():
+                return obj.has_updated
+            case _:
+                return False
 
 
 class RootView(TemplateView):
@@ -106,7 +149,7 @@ class VocabularyView(LoginRequiredMixin, UpdateView):
         return HttpResponse(status=HTTPStatus.OK)
 
 
-class TermsView(LoginRequiredMixin, View):
+class TermsView(LoginRequiredMixin, PublishUpdatesMixin, View):
     model = Vocabulary
     context_object_name = 'vocabulary'
 
@@ -161,7 +204,7 @@ class GraphView(LoginRequiredMixin, DetailView):
         )
 
 
-class TermView(LoginRequiredMixin, DetailView):
+class TermView(LoginRequiredMixin, PublishUpdatesMixin, DetailView):
     model = Term
     context_object_name = 'term'
 
@@ -171,7 +214,7 @@ class TermView(LoginRequiredMixin, DetailView):
         return HttpResponse(status=HTTPStatus.OK)
 
 
-class PropertyView(LoginRequiredMixin, DetailView):
+class PropertyView(LoginRequiredMixin, PublishUpdatesMixin, DetailView):
     model = Property
     context_object_name = 'property'
 
@@ -201,7 +244,7 @@ class NewPropertyView(LoginRequiredMixin, CreateView):
         return reverse('show_property', args=(self.object.id,))
 
 
-class PropertyEditView(LoginRequiredMixin, UpdateView):
+class PropertyEditView(LoginRequiredMixin, PublishUpdatesMixin, UpdateView):
     model = Property
     form_class = PropertyForm
 

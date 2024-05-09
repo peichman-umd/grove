@@ -14,6 +14,7 @@
   {% csrf_token %}
   {% if vocabulary.is_published %}
   <button class="unpublish" type="submit" name="publish" value="false">Unpublish</button>
+  {% include 'vocabs/publish_updates_button.html' with show_publish_updates_button=vocabulary.has_updated %}
   {% else %}
   <button class="publish" type="submit" name="publish" value="true">Publish</button>
   {% endif %}
