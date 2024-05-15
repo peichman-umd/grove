@@ -20,16 +20,59 @@ def test_vocabulary_form(data, expected_validity):
     assert form.is_valid() is expected_validity
 
 
-@pytest.mark.django_db
-def test_property_form():
-    vocab = Vocabulary(uri='http://example.com/foo#')
-    vocab.save()
+@pytest.fixture
+def vocab():
+    vocab, _ = Vocabulary.objects.get_or_create(uri='http://example.com/foo#')
+    return vocab
+
+
+@pytest.fixture
+def rdf_type_predicate():
     predicate, _ = Predicate.objects.get_or_create(uri=rdf.type, object_type=Predicate.ObjectType.URI_REF)
-    term = Term(name='bar', vocabulary=vocab)
-    term.save()
-    form = PropertyForm({'term': term, 'predicate': predicate, 'value': 'rdfs:Class'})
+    return predicate
+
+
+@pytest.fixture
+def rdfs_label_predicate():
+    predicate, _ = Predicate.objects.get_or_create(uri=rdfs.label, object_type=Predicate.ObjectType.LITERAL)
+    return predicate
+
+
+@pytest.fixture
+def term(vocab):
+    term, _ = Term.objects.get_or_create(name='bar', vocabulary=vocab)
+    return term
+
+
+@pytest.mark.django_db
+def test_property_form(vocab, rdf_type_predicate, term):
+    form = PropertyForm({'term': term, 'predicate': rdf_type_predicate, 'value': 'rdfs:Class'})
     form.full_clean()
     assert form.cleaned_data['value'] == str(rdfs.Class)
-    form = PropertyForm({'term': term, 'predicate': predicate, 'value': str(rdfs.Class)})
+    form = PropertyForm({'term': term, 'predicate': rdf_type_predicate, 'value': str(rdfs.Class)})
     form.full_clean()
     assert form.cleaned_data['value'] == str(rdfs.Class)
+    _invalid_uri_chars = '<>" {}|\\^`'
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ('value', 'expected_validity'),
+    [
+        ('', False),
+        ('string with space', False),
+        ('<angle_bracketed>', False),
+        ('pipe|string', False),
+        ('{curly_brackets}', False),
+        ('\\escaped\\', False),
+        ('caret^string', False),
+        ('`backtick_string`', False),
+        ('rdfs:Class', True),
+        ('http://example.com/doc.html?q=foo#section', True),
+        ('urn:uuid:b2bce418-eb2f-4aa8-9678-b89438814449', True),
+        ('mailto:jdoe@example.com', True),
+    ]
+)
+def test_property_form_uriref_validation(vocab, rdf_type_predicate, term, value, expected_validity):
+    form = PropertyForm({'term': term, 'predicate': rdf_type_predicate, 'value': value})
+    assert form.is_valid() == expected_validity

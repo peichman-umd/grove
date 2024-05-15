@@ -1,11 +1,10 @@
 <form method="post" action="{% url 'edit_property' pk=property.id %}">
   {% csrf_token %}
-  {{ form.term }} {{ form.predicate }} <fieldset>{{ form.value }}
-  {% if property.predicate.object_type == 'Literal' %}
-  <!-- input size="3" name="language" placeholder="Lang"/>
-  <input name="datatype" placeholder="Type"/ -->
-  {% endif %}
-</fieldset>
+  {{ form.term }} {{ form.predicate }}
+  <fieldset>
+    {{ form.value }}
+    {{ form.value.errors }}
+  </fieldset>
   <button class="update" hx-post="{% url 'edit_property' pk=property.id %}" hx-target="closest .property" type="submit">Save</button>
   <button hx-get="{% url 'show_property' pk=property.id %}" hx-target="closest .property">Cancel</button>
 </form>

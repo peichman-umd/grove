@@ -231,7 +231,10 @@ class Property(TimeStampedModel, SafeDeleteModel):
 
     @property
     def value_as_curie(self) -> str:
-        curie = URIRef(str(self.value)).n3(namespace_manager=nsm)
+        try:
+            curie = URIRef(str(self.value)).n3(namespace_manager=nsm)
+        except Exception:  # noqa
+            curie = str(self.value)
         return curie if len(curie) <= len(str(self.value)) else str(self.value)
 
     @property
