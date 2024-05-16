@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.forms import CharField, Form, HiddenInput, ModelForm, TextInput, Textarea, FileField, ChoiceField
 from plastron.namespaces import namespace_manager
 from rdflib.util import from_n3
@@ -32,6 +33,16 @@ class VocabularyForm(ModelForm):
         }
 
 
+# copied from rdflib.term._is_valid_uri, since that function is not
+# part of the public interface to rdflib, and may be subject to changes
+def _is_valid_uri(uri: str) -> bool:
+    # _invalid_uri_chars = '<>" {}|\\^`'
+    for c in '<>" {}|\\^`':
+        if c in uri:
+            return False
+    return True
+
+
 class PropertyForm(ModelForm):
     class Meta:
         model = Property
@@ -48,8 +59,16 @@ class PropertyForm(ModelForm):
         predicate = self.cleaned_data['predicate']
         value = self.cleaned_data['value']
         if predicate.object_type == Predicate.ObjectType.URI_REF:
-            if not value.startswith('http:') or value.startswith('https:'):
+            # ensure only valid URI characters in the value
+            if not _is_valid_uri(value):
+                raise ValidationError(f'{predicate} expects a URI or CURIE')
+            try:
                 return str(from_n3(value, nsm=namespace_manager))
+            except KeyError:
+                # something looked like a CURIE, but we don't have a namespace for it
+                # (e.g., "http://example.com" or "urn:foo" or "mailto:jdoe@example.org"),
+                # so just return the full value
+                return value
 
         return value
 
