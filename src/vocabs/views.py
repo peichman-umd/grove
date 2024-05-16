@@ -157,27 +157,29 @@ class TermsView(LoginRequiredMixin, PublishUpdatesMixin, View):
         """Create a new term."""
         vocabulary = get_object_or_404(self.model, id=pk)
         name = request.POST.get('term_name', '').strip()
+        if name == '':
+            return HttpResponse(status=HTTPStatus.BAD_REQUEST)
+
+        term, _ = Term.objects.get_or_create(
+            vocabulary=vocabulary,
+            name=name,
+        )
         rdf_type = request.POST.get('rdf_type', '').strip()
-        if name != '':
-            term, is_new = Term.objects.get_or_create(
-                vocabulary=vocabulary,
-                name=name,
+        if rdf_type != '':
+            predicate, _ = Predicate.objects.get_or_create(
+                uri=str(rdf.type),
+                object_type=Predicate.ObjectType.URI_REF,
             )
-            if rdf_type != '':
-                predicate, _ = Predicate.objects.get_or_create(
-                    uri=str(rdf.type),
-                    object_type=Predicate.ObjectType.URI_REF,
-                )
-                Property.objects.get_or_create(
-                    term=term,
-                    predicate=predicate,
-                    value=from_n3(rdf_type),
-                )
+            Property.objects.get_or_create(
+                term=term,
+                predicate=predicate,
+                value=from_n3(rdf_type),
+            )
 
-            if self.request.headers.get('HX-Request', 'false') == 'true':
-                return render(self.request, 'vocabs/term.html', {'term': term, 'predicates': Predicate.objects.all})
-
-        return HttpResponseRedirect(reverse('show_vocabulary', args=(pk,)))
+        if request.htmx:
+            return render(self.request, 'vocabs/term.html', {'term': term, 'predicates': Predicate.objects.all})
+        else:
+            return HttpResponseRedirect(reverse('show_vocabulary', args=(pk,)))
 
 
 class GraphView(LoginRequiredMixin, DetailView):

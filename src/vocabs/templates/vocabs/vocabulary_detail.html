@@ -51,15 +51,15 @@
 
   <details id="new-terms" open>
     <summary><h2>Create New Term</h2></summary>
-    <form method="post" action="{% url 'list_terms' pk=vocabulary.id %}">
+    <form method="post" action="{% url 'list_terms' pk=vocabulary.id %}" hx-boost="true" hx-target="#terms tbody" hx-swap="beforeend">
       {% csrf_token %}
-      <input name="term_name" placeholder="Name" />
+      <input name="term_name" placeholder="Name" required/>
       <select name="rdf_type">
         <option value="">Basic term</option>
         <option value="rdfs:Class">Class</option>
         <option value="rdfs:Datatype">Datatype</option>
       </select>
-      <button class="create" type="submit" hx-post="{% url 'list_terms' pk=vocabulary.id %}" hx-target="previous tbody" hx-swap="beforeend">Add Term</button>
+      <button class="create" type="submit">Add Term</button>
     </form>
   </details>
 </div>
