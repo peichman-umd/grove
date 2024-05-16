@@ -1,5 +1,6 @@
 <li class="property">
-  <form method="post" action="{% url 'new_property' %}" hx-boost="true" hx-push-url="false" hx-target="closest .property">
+  <form method="post" action="{% url 'new_property' %}" hx-boost="true" hx-push-url="false"
+        hx-target="closest .property" hx-swap="outerHTML">
     {% csrf_token %}
     {{ form.term }} {{ form.predicate }}
     <fieldset>
