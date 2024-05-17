@@ -1,6 +1,6 @@
 [project]
 name = "grove"
-version = "1.0.0-rc1"
+version = "1.0.0-rc2"
 dependencies = [
     "click~=8.1",
     "django~=5.0",
