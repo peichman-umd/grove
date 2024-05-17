@@ -51,7 +51,8 @@
 
   <details id="new-terms" open>
     <summary><h2>Create New Term</h2></summary>
-    <form method="post" action="{% url 'list_terms' pk=vocabulary.id %}" hx-boost="true" hx-target="#terms tbody" hx-swap="beforeend">
+    <form method="post" action="{% url 'list_terms' pk=vocabulary.id %}"
+          hx-boost="true" hx-target="#terms tbody" hx-swap="beforeend" hx-push-url="false">
       {% csrf_token %}
       <input name="term_name" placeholder="Name" required/>
       <select name="rdf_type">
