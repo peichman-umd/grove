@@ -2,17 +2,18 @@ from django.http import HttpRequest
 from django.urls import path
 
 from vocabs.views import (GraphView, IndexView, NewPropertyView, PredicatesView, PrefixList, PropertyEditView,
-                          PropertyView, TermView, VocabularyView, TermsView, ImportFormView, PublishedVocabularyView,
-                          RootView,
+                          PropertyView, TermView, VocabularyView, ImportFormView, VocabularyStatusView,
+                          RootView, VocabularyPublicationFormView, NewTermFormView,
                           )
 
 urlpatterns = [
     path('', RootView.as_view(), name='site_root'),
     path('vocabs/', IndexView.as_view(), name='list_vocabularies'),
     path('vocabs/<int:pk>', VocabularyView.as_view(), name='show_vocabulary'),
-    path('vocabs/<int:pk>/terms', TermsView.as_view(), name='list_terms'),
     path('vocabs/<int:pk>/graph', GraphView.as_view(), name='show_graph'),
-    path('vocabs/<int:pk>/published', PublishedVocabularyView.as_view(), name='publish_vocabulary'),
+    path('vocabs/<int:pk>/status', VocabularyStatusView.as_view(), name='vocabulary_status'),
+    path('vocabs/<int:pk>/forms/publication', VocabularyPublicationFormView.as_view(), name='publication_form'),
+    path('vocabs/<int:pk>/forms/term', NewTermFormView.as_view(), name='new_term_form'),
     path('terms/<int:pk>', TermView.as_view(), name='show_term'),
     path('properties/new', NewPropertyView.as_view(), name='new_property'),
     path('properties/<int:pk>', PropertyView.as_view(), name='show_property'),

@@ -3,7 +3,7 @@ from django.forms import CharField, Form, HiddenInput, ModelForm, TextInput, Tex
 from plastron.namespaces import namespace_manager
 from rdflib.util import from_n3
 
-from vocabs.models import Predicate, Property, Vocabulary, VocabularyURIValidator, VOCAB_FORMAT_LABELS
+from vocabs.models import Predicate, Property, Vocabulary, VocabularyURIValidator, VOCAB_FORMAT_LABELS, Term
 
 
 class NewVocabularyForm(Form):
@@ -41,6 +41,22 @@ def _is_valid_uri(uri: str) -> bool:
         if c in uri:
             return False
     return True
+
+
+class TermForm(ModelForm):
+    class Meta:
+        model = Term
+        fields = ['vocabulary', 'name']
+        widgets = {
+            'vocabulary': HiddenInput(),
+            'name': TextInput(attrs={'placeholder': 'Name'})
+        }
+
+    rdf_type = ChoiceField(
+        choices={'': 'Basic term', 'rdfs:Class': 'Class', 'rdfs:Datatype': 'Datatype'},
+        # must set required=False to allow the choice of "" for the Basic term option
+        required=False,
+    )
 
 
 class PropertyForm(ModelForm):
