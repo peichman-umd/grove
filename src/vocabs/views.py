@@ -24,14 +24,21 @@ from vocabs.models import Predicate, Property, Term, Vocabulary, VOCAB_FORMAT_LA
 logger = logging.getLogger(__name__)
 
 
+def add_htmx_trigger(response: HttpResponse, trigger_name: str):
+    if 'HX-Trigger' not in response.headers:
+        response.headers['HX-Trigger'] = trigger_name
+    else:
+        response.headers['HX-Trigger'] += ', ' + trigger_name
+
+
 class PublishUpdatesMixin(View):
     """Adds a 'Publish Updates' on database changes via HTMX"""
 
     def dispatch(self, request, *args, **kwargs):
         response = super().dispatch(request, *args, **kwargs)
 
-        if self.vocabulary_has_updated() and ('HX-Trigger' not in response.headers.keys()):
-            response.headers['HX-Trigger'] = 'grove:vocabUpdated'
+        if request.htmx and self.vocabulary_has_updated():
+            add_htmx_trigger(response, 'grove:vocabUpdated')
 
         return response
 
@@ -110,7 +117,7 @@ class IndexView(LoginRequiredMixin, ListView):
         return HttpResponseRedirect(reverse('list_vocabularies'))
 
 
-class VocabularyView(LoginRequiredMixin, UpdateView):
+class VocabularyView(LoginRequiredMixin, PublishUpdatesMixin, UpdateView):
     model = Vocabulary
     form_class = VocabularyForm
     context_object_name = 'vocabulary'
@@ -364,8 +371,7 @@ class NewTermFormView(LoginRequiredMixin, PublishUpdatesMixin, DetailView, FormV
 
         if self.request.htmx:
             response = render(self.request, 'vocabs/term.html', {'term': term, 'predicates': Predicate.objects.all})
-            if 'HX-Trigger' not in response.headers.keys():
-                response.headers['HX-Trigger'] = 'grove:termAdded'
+            add_htmx_trigger(response, 'grove:termAdded')
             return response
         else:
             return HttpResponseRedirect(reverse('show_vocabulary', args=(form.cleaned_data['vocabulary'].id,)))
