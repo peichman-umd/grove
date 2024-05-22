@@ -10,18 +10,6 @@ def vocab_with_uri(uri: str):
     yield Vocabulary.objects.get(uri=uri)
 
 
-@pytest.fixture
-def vocab_uri() -> str:
-    return 'http://example.com/foo#'
-
-
-@pytest.fixture
-def post(admin_client):
-    def _post(url: str, **kwargs):
-        return admin_client.post(url, follow=True, **kwargs)
-    return _post
-
-
 def test_site_root_unauthenticated(client):
     response = client.get('/')
     assert 'Login Required' in response.content.decode()
@@ -109,10 +97,3 @@ def test_graph_not_acceptable(admin_client, post, vocab_uri):
     vocab_path = post('/vocabs/', data={'uri': vocab_uri}).wsgi_request.path
     response = admin_client.get(vocab_path + '/graph', data={'format': 'NOT_A_VALID_FORMAT'})
     assert response.status_code == HTTPStatus.NOT_ACCEPTABLE
-
-
-@pytest.mark.django_db
-def test_import_vocabulary(datadir, post, vocab_uri):
-    with (datadir / 'foo.ttl').open() as fh:
-        response = post('/import', data={'uri': vocab_uri, 'rdf_format': 'text/turtle', 'file': fh})
-    assert response.status_code == HTTPStatus.OK
