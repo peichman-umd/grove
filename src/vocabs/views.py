@@ -30,7 +30,7 @@ class PublishUpdatesMixin(View):
     def dispatch(self, request, *args, **kwargs):
         response = super().dispatch(request, *args, **kwargs)
 
-        if self.vocabulary_has_updated():
+        if self.vocabulary_has_updated() and ('HX-Trigger' not in response.headers.keys()):
             response.headers['HX-Trigger'] = 'grove:vocabUpdated'
 
         return response
@@ -364,7 +364,8 @@ class NewTermFormView(LoginRequiredMixin, PublishUpdatesMixin, DetailView, FormV
 
         if self.request.htmx:
             response = render(self.request, 'vocabs/term.html', {'term': term, 'predicates': Predicate.objects.all})
-            response.headers['HX-Trigger'] = 'grove:termAdded'
+            if 'HX-Trigger' not in response.headers.keys():
+                response.headers['HX-Trigger'] = 'grove:termAdded'
             return response
         else:
             return HttpResponseRedirect(reverse('show_vocabulary', args=(form.cleaned_data['vocabulary'].id,)))
