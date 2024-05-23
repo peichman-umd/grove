@@ -10,15 +10,9 @@
   <a href="{% url 'show_graph' pk=vocabulary.id %}?format={{ param }}" target="_blank">{{ label }}</a>
   {% endfor %}
 </p>
-<form method="post" action="{% url 'publish_vocabulary' pk=vocabulary.id %}">
-  {% csrf_token %}
-  {% if vocabulary.is_published %}
-  <button class="unpublish" type="submit" name="publish" value="false">Unpublish</button>
-  {% include 'vocabs/publish_updates_button.html' with show_publish_updates_button=vocabulary.has_updated %}
-  {% else %}
-  <button class="publish" type="submit" name="publish" value="true">Publish</button>
-  {% endif %}
-</form>
+<div hx-trigger="grove:vocabUpdated from:body" hx-get="{% url 'publication_form' pk=vocabulary.id %}">
+  {% include 'vocabs/publication_form.html' %}
+</div>
 
 <div id="forms">
   <details id="details">
@@ -51,17 +45,9 @@
 
   <details id="new-terms" open>
     <summary><h2>Create New Term</h2></summary>
-    <form method="post" action="{% url 'list_terms' pk=vocabulary.id %}"
-          hx-boost="true" hx-target="#terms tbody" hx-swap="beforeend" hx-push-url="false">
-      {% csrf_token %}
-      <input name="term_name" placeholder="Name" required/>
-      <select name="rdf_type">
-        <option value="">Basic term</option>
-        <option value="rdfs:Class">Class</option>
-        <option value="rdfs:Datatype">Datatype</option>
-      </select>
-      <button class="create" type="submit">Add Term</button>
-    </form>
+    <div id="new-term" hx-trigger="grove:termAdded from:body" hx-get="{% url 'new_term_form' pk=vocabulary.id %}">
+      {% include 'vocabs/new_term_form.html' with form=new_term_form %}
+    </div>
   </details>
 </div>
 

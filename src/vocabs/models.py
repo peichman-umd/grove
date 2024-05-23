@@ -8,7 +8,8 @@ from typing import IO, TextIO, TypeAlias, NamedTuple, cast
 from xml.sax import SAXParseException
 
 from django.core.validators import RegexValidator
-from django.db.models import CASCADE, PROTECT, CharField, DateTimeField, ForeignKey, Model, TextChoices
+from django.db.models import CASCADE, PROTECT, CharField, DateTimeField, ForeignKey, Model, TextChoices, \
+    UniqueConstraint, Q
 from django_extensions.db.models import TimeStampedModel
 from plastron.namespaces import dc, namespace_manager as nsm, rdfs
 from rdflib import Graph, Literal, URIRef, Namespace
@@ -175,9 +176,21 @@ class Vocabulary(TimeStampedModel):
 
 
 class Term(TimeStampedModel, SafeDeleteModel):
+    class Meta:
+        constraints = [
+            # terms within a vocabulary must have a unique name
+            UniqueConstraint(
+                fields=('vocabulary', 'name'),
+                condition=Q(deleted__isnull=True),
+                name='unique_term_vocabulary_name',
+                violation_error_message='A term with this name already exists in this vocabulary',
+            ),
+        ]
+
     # Use SOFT_DELETE_CASCADE policy to ensure that dependent Property models
     # are also soft-deleted (instead of not being deleted at all).
     _safedelete_policy = SOFT_DELETE_CASCADE
+
     vocabulary = ForeignKey(Vocabulary, on_delete=CASCADE, related_name='terms')
     name = CharField(max_length=256)
 
