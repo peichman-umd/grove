@@ -1,4 +1,5 @@
 import logging
+import re
 from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -40,6 +41,12 @@ GraphSource: TypeAlias = IO[bytes] | TextIO | InputSource | str | bytes | PurePa
 class VocabularyURIValidator(RegexValidator):
     regex = r'.+[/#]$'
     message = 'Must end with "/" or "#"'
+
+
+class TermNameValidator(RegexValidator):
+    regex = r'^[a-z0-9_-]+$'
+    flags = re.IGNORECASE
+    message = 'Term names may only contain A-Z, a-z, 0-9, and "-" and "_"'
 
 
 class Context(dict):
@@ -192,7 +199,7 @@ class Term(TimeStampedModel, SafeDeleteModel):
     _safedelete_policy = SOFT_DELETE_CASCADE
 
     vocabulary = ForeignKey(Vocabulary, on_delete=CASCADE, related_name='terms')
-    name = CharField(max_length=256)
+    name = CharField(max_length=256, validators=[TermNameValidator()])
 
     @property
     def uri(self):

@@ -1,7 +1,7 @@
 import pytest
 from plastron.namespaces import rdf, rdfs
 
-from vocabs.forms import VocabularyForm, PropertyForm
+from vocabs.forms import VocabularyForm, PropertyForm, TermForm
 from vocabs.models import Vocabulary, Term, Predicate
 
 
@@ -75,4 +75,21 @@ def test_property_form(vocab, rdf_type_predicate, term):
 )
 def test_property_form_uriref_validation(vocab, rdf_type_predicate, term, value, expected_validity):
     form = PropertyForm({'term': term, 'predicate': rdf_type_predicate, 'value': value})
+    assert form.is_valid() == expected_validity
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ('name', 'expected_validity'),
+    [
+        ('basic', True),
+        ('moreComplex12', True),
+        ('with spaces', False),
+        ('other.punctuation!', False),
+        ('hyphen-is-okay', True),
+        ('so_is_underscore', True),
+    ]
+)
+def test_term_form_name_validation(vocab, name, expected_validity):
+    form = TermForm({'name': name, 'vocabulary': vocab})
     assert form.is_valid() == expected_validity
