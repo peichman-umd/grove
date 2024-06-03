@@ -10,14 +10,9 @@
   <a href="{% url 'show_graph' pk=vocabulary.id %}?format={{ param }}" target="_blank">{{ label }}</a>
   {% endfor %}
 </p>
-<form method="post" action="{% url 'publish_vocabulary' pk=vocabulary.id %}">
-  {% csrf_token %}
-  {% if vocabulary.is_published %}
-  <button class="unpublish" type="submit" name="publish" value="false">Unpublish</button>
-  {% else %}
-  <button class="publish" type="submit" name="publish" value="true">Publish</button>
-  {% endif %}
-</form>
+<div hx-trigger="grove:vocabUpdated from:body" hx-get="{% url 'publication_form' pk=vocabulary.id %}">
+  {% include 'vocabs/publication_form.html' %}
+</div>
 
 <div id="forms">
   <details id="details">
@@ -50,16 +45,9 @@
 
   <details id="new-terms" open>
     <summary><h2>Create New Term</h2></summary>
-    <form method="post" action="{% url 'list_terms' pk=vocabulary.id %}">
-      {% csrf_token %}
-      <input name="term_name" placeholder="Name" />
-      <select name="rdf_type">
-        <option value="">Basic term</option>
-        <option value="rdfs:Class">Class</option>
-        <option value="rdfs:Datatype">Datatype</option>
-      </select>
-      <button class="create" type="submit" hx-post="{% url 'list_terms' pk=vocabulary.id %}" hx-target="previous tbody" hx-swap="beforeend">Add Term</button>
-    </form>
+    <div id="new-term" hx-trigger="grove:termAdded from:body" hx-get="{% url 'new_term_form' pk=vocabulary.id %}">
+      {% include 'vocabs/new_term_form.html' with form=new_term_form %}
+    </div>
   </details>
 </div>
 
@@ -71,12 +59,5 @@
       selectElement.value = 'Add a property';
     }
   });
-
-  document.body.addEventListener('htmx:beforeRequest', function (evt) {
-    // send the csrftoken as a header on DELETE requests
-    if (evt.detail.elt.className == 'delete') {
-      evt.detail.xhr.setRequestHeader('X-CSRFToken', cookieParser(document.cookie).csrftoken);
-    }
-  })
 </script>
 {% endblock %}

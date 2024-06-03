@@ -3,7 +3,7 @@ FROM python:3.11.4-slim
 
 # Install git
 RUN apt-get update && \
-    apt-get install -y git && \
+    apt-get install -y git xmlsec1 && \
     apt-get clean
 
 # Set environment variables
@@ -20,9 +20,12 @@ RUN pip install -e .[prod]
 
 # Copy project
 COPY src ./src
+COPY attribute-maps ./attribute-maps
+RUN pip install -e .[prod]
+RUN src/manage.py collectstatic
 
 # PORT
 EXPOSE 5000
 
 # Commands to run migration and start the server
-CMD sh -c "src/manage.py migrate && src/server.py"
+CMD sh -c "src/manage.py migrate && grove"

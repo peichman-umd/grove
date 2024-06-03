@@ -1,0 +1,10 @@
+<form method="post" action="{% url 'new_term_form' pk=vocabulary.id %}"
+      hx-boost="true" hx-target="#terms tbody" hx-swap="beforeend" hx-push-url="false">
+  {% csrf_token %}
+  {{ form.vocabulary }}
+  {{ form.name }}
+  {{ form.rdf_type }}
+  <button class="create" type="submit">Add Term</button>
+  {{ form.name.errors }}
+  {{ form.non_field_errors }}
+</form>

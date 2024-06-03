@@ -10,13 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
-import os
-
 from pathlib import Path
 
 import saml2.saml
 import saml2.xmldsig
 from django.core.management.commands.runserver import Command as runserver
+from django.core.management.utils import get_random_secret_key
 from environ import Env
 from urlobject import URLObject
 
@@ -26,19 +25,20 @@ from socket import gethostname, gethostbyname
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Static file dir
-STATIC_ROOT = os.path.join(BASE_DIR, 'src/vocabs/static')
+STATIC_ROOT = str(BASE_DIR / 'staticfiles')
 
 # Take environment variables from .env file
 Env.read_env(BASE_DIR / '.env')
 env = Env()
 
 BASE_URL = URLObject(env.str('BASE_URL', 'http://localhost:5000/'))
+CSRF_TRUSTED_ORIGINS = [str(BASE_URL.with_path(''))]
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
+SECRET_KEY = env('SECRET_KEY', default=get_random_secret_key())
 
 # Set Debug to True to enable detailed error pages (for development debugging)
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'djangosaml2',
+    'django_htmx',
 ]
 
 MIDDLEWARE = [
@@ -90,6 +91,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'djangosaml2.middleware.SamlSessionMiddleware',
+    'django_htmx.middleware.HtmxMiddleware',
 ]
 
 ROOT_URLCONF = 'grove.urls'
@@ -219,10 +221,10 @@ LOGGING = {
 # The storage linked to it is accessible by default at request.saml_session.
 SAML_SESSION_COOKIE_NAME = 'saml_session'
 # By default, djangosaml2 will set “SameSite=None” for the SAML session cookie.
-SAML_SESSION_COOKIE_SAMESITE = env('SAML_SESSION_COOKIE_SAMESITE')
+SAML_SESSION_COOKIE_SAMESITE = env('SAML_SESSION_COOKIE_SAMESITE', default='None')
 # Remember that in your browser “SameSite=None” attribute MUST also have the “Secure” attribute,
 # which is required in order to use “SameSite=None”, otherwise the cookie will be blocked.
-SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE')
+SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=True)
 
 # Handling Post-Login Redirects
 SAML_ALLOWED_HOSTS = env('SAML_ALLOWED_HOSTS', cast=[str], default=ALLOWED_HOSTS)
@@ -239,10 +241,12 @@ SAML_ATTRIBUTE_MAPPING = {
     'givenName': ('first_name',),
     'urn:mace:umd.edu:sn': ('last_name',),
 }
+SAML_KEY_FILE = env('SAML_KEY_FILE', default='/etc/grove/saml/key.pem')
+SAML_CERT_FILE = env('SAML_CERT_FILE', default='/etc/grove/saml/cert.pem')
 
 SAML_CONFIG = {
     # full path to the xmlsec1 binary program
-    'xmlsec_binary': env('XMLSEC1_PATH'),
+    'xmlsec_binary': env('XMLSEC1_PATH', default='/usr/bin/xmlsec1'),
 
     # your entity id, usually your subdomain plus the url to the metadata view
     'entityid': str(BASE_URL.netloc),
@@ -350,12 +354,12 @@ SAML_CONFIG = {
     'debug': 1,
 
     # Signing
-    'key_file': str(BASE_DIR / env('SAML_KEY_FILE')),
-    'cert_file': str(BASE_DIR / env('SAML_CERT_FILE')),
+    'key_file': SAML_KEY_FILE,
+    'cert_file': SAML_CERT_FILE,
 
     # Encryption
     'encryption_keypairs': [{
-        'key_file': str(BASE_DIR / env('SAML_KEY_FILE')),
-        'cert_file': str(BASE_DIR / env('SAML_CERT_FILE')),
+        'key_file': SAML_KEY_FILE,
+        'cert_file': SAML_CERT_FILE,
     }],
 }

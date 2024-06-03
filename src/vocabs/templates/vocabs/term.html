@@ -1,29 +1,36 @@
 <tr class="term">
-    <td>
-        <strong>{{ term.name }}</strong>
-    </td>
-    <td>
-        <ul class="properties">
-            {% for property in term.properties.all %}
-            <li class="property">{% include 'vocabs/property_detail.html' %}</li>
-            {% endfor %}
-        </ul>
-        <div class="properties-controls">
-            <select class="add-property" hx-target="previous .properties" hx-swap="beforeend">
-                <option>Add a property</option>
-                {% for predicate in predicates %}
-                <option hx-get="{% url 'new_property' %}?term_id={{ term.id }}&amp;predicate={{ predicate.curie }}">
-                    {{ predicate.curie }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-    </td>
-    <td>
-        <a href="{{ term.uri }}">{{ term.uri }}</a>
-    </td>
-    <td>
-        <button class="delete" hx-delete="{% url 'show_term' pk=term.id %}" hx-target="closest .term" hx-swap="delete"
-                hx-confirm="Really delete the term '{{ term.name }}'?">Delete</button>
-    </td>
+  <td>
+    <strong>{{ term.name }}</strong>
+  </td>
+  <td>
+    <ul class="properties">
+      {% for property in term.properties.all %}
+      {% include 'vocabs/property_detail.html' %}
+      {% endfor %}
+    </ul>
+    <div class="properties-controls">
+      <form method="get" action="{% url 'new_property' %}" hx-boost="true" hx-push-url="false"
+            hx-target="previous .properties" hx-swap="beforeend">
+        <input type="hidden" name="term_id" value="{{ term.id }}"/>
+        <select name="predicate" class="add-property" onchange="htmx.trigger(this.form, 'submit', {})">
+          <option>Add a property</option>
+          {% for predicate in predicates %}
+          <option>
+            {{ predicate.curie }}
+          </option>
+          {% endfor %}
+        </select>
+        <noscript>
+          <button class="create" type="submit">Add Property</button>
+        </noscript>
+      </form>
+    </div>
+  </td>
+  <td>
+    <a href="{{ term.uri }}">{{ term.uri }}</a>
+  </td>
+  <td>
+    <button class="delete" hx-delete="{% url 'show_term' pk=term.id %}" hx-target="closest .term" hx-swap="delete"
+            hx-confirm="Really delete the term '{{ term.name }}'?">Delete</button>
+  </td>
 </tr>

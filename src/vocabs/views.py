@@ -5,21 +5,67 @@ from typing import Any, Counter
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import render
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import CreateView, DetailView, ListView, UpdateView, TemplateView, FormView
+from django.views.generic.detail import SingleObjectMixin
 from plastron.namespaces import namespace_manager, rdf
 from rdflib.util import from_n3
 
-from vocabs.forms import PropertyForm, NewVocabularyForm, VocabularyForm, ImportForm
+from vocabs.forms import PropertyForm, NewVocabularyForm, VocabularyForm, ImportForm, TermForm
 from vocabs.models import Predicate, Property, Term, Vocabulary, VOCAB_FORMAT_LABELS, import_vocabulary
 
 logger = logging.getLogger(__name__)
+
+
+def add_htmx_trigger(response: HttpResponse, trigger_name: str):
+    if 'HX-Trigger' not in response.headers:
+        response.headers['HX-Trigger'] = trigger_name
+    else:
+        response.headers['HX-Trigger'] += ', ' + trigger_name
+
+
+class PublishUpdatesMixin(View):
+    """Adds a 'Publish Updates' on database changes via HTMX"""
+
+    def dispatch(self, request, *args, **kwargs):
+        response = super().dispatch(request, *args, **kwargs)
+
+        if request.htmx and self.vocabulary_has_updated():
+            add_htmx_trigger(response, 'grove:vocabUpdated')
+
+        return response
+
+    def vocabulary_has_updated(self):
+        """Returns True if the Vocabulary has been updated, False otherwise."""
+
+        # Assume any DELETE or POST requests result in an update. This is
+        # needed because we can't retrieve the object on DELETE requests,
+        # and some POSTS (such as from TermsView) don't use templates, and
+        # so don't respond to "self.get_object".
+        if self.request.method == 'DELETE' or self.request.method == 'POST':
+            return True
+
+        if not isinstance(self, SingleObjectMixin):
+            return False
+
+        obj = self.get_object()
+
+        match obj:
+            case Property():
+                return obj.term.vocabulary.has_updated
+            case Term():
+                return obj.vocabulary.has_updated
+            case Vocabulary():
+                return obj.has_updated
+            case _:
+                return False
 
 
 class RootView(TemplateView):
@@ -71,7 +117,7 @@ class IndexView(LoginRequiredMixin, ListView):
         return HttpResponseRedirect(reverse('list_vocabularies'))
 
 
-class VocabularyView(LoginRequiredMixin, UpdateView):
+class VocabularyView(LoginRequiredMixin, PublishUpdatesMixin, UpdateView):
     model = Vocabulary
     form_class = VocabularyForm
     context_object_name = 'vocabulary'
@@ -84,6 +130,7 @@ class VocabularyView(LoginRequiredMixin, UpdateView):
             'predicates': Predicate.objects.all,
             'formats': VOCAB_FORMAT_LABELS,
             'terms': self.object.terms.all().order_by('name'),
+            'new_term_form': TermForm(initial={'vocabulary': self.object}),
         })
         return context
 
@@ -100,36 +147,20 @@ class VocabularyView(LoginRequiredMixin, UpdateView):
         messages.error(self.request, message='Vocabulary cannot be updated due to validation errors')
         return super().form_invalid(form)
 
+    @method_decorator(ensure_csrf_cookie)
+    def delete(self, *_args, **_kwargs):
+        self.get_object().delete()
+        return HttpResponse(status=HTTPStatus.OK)
 
-class TermsView(LoginRequiredMixin, View):
-    model = Vocabulary
-    context_object_name = 'vocabulary'
 
-    def post(self, request, pk, *_args, **_kwargs):
-        """Create a new term."""
-        vocabulary = get_object_or_404(self.model, id=pk)
-        name = request.POST.get('term_name', '').strip()
-        rdf_type = request.POST.get('rdf_type', '').strip()
-        if name != '':
-            term, is_new = Term.objects.get_or_create(
-                vocabulary=vocabulary,
-                name=name,
-            )
-            if rdf_type != '':
-                predicate, _ = Predicate.objects.get_or_create(
-                    uri=str(rdf.type),
-                    object_type=Predicate.ObjectType.URI_REF,
-                )
-                Property.objects.get_or_create(
-                    term=term,
-                    predicate=predicate,
-                    value=from_n3(rdf_type),
-                )
+def rdf_type_predicate() -> Predicate:
+    """Find or create the Predicate for "rdf:type"."""
 
-            if self.request.headers.get('HX-Request', 'false') == 'true':
-                return render(self.request, 'vocabs/term.html', {'term': term, 'predicates': Predicate.objects.all})
-
-        return HttpResponseRedirect(reverse('show_vocabulary', args=(pk,)))
+    predicate, _ = Predicate.objects.get_or_create(
+        uri=str(rdf.type),
+        object_type=Predicate.ObjectType.URI_REF,
+    )
+    return predicate
 
 
 class GraphView(LoginRequiredMixin, DetailView):
@@ -156,7 +187,7 @@ class GraphView(LoginRequiredMixin, DetailView):
         )
 
 
-class TermView(LoginRequiredMixin, DetailView):
+class TermView(LoginRequiredMixin, PublishUpdatesMixin, DetailView):
     model = Term
     context_object_name = 'term'
 
@@ -166,7 +197,7 @@ class TermView(LoginRequiredMixin, DetailView):
         return HttpResponse(status=HTTPStatus.OK)
 
 
-class PropertyView(LoginRequiredMixin, DetailView):
+class PropertyView(LoginRequiredMixin, PublishUpdatesMixin, DetailView):
     model = Property
     context_object_name = 'property'
 
@@ -196,7 +227,7 @@ class NewPropertyView(LoginRequiredMixin, CreateView):
         return reverse('show_property', args=(self.object.id,))
 
 
-class PropertyEditView(LoginRequiredMixin, UpdateView):
+class PropertyEditView(LoginRequiredMixin, PublishUpdatesMixin, UpdateView):
     model = Property
     form_class = PropertyForm
 
@@ -283,13 +314,13 @@ class ImportFormView(LoginRequiredMixin, FormView):
         return super().form_invalid(form)
 
 
-class PublishedVocabularyView(LoginRequiredMixin, DetailView):
+class VocabularyStatusView(LoginRequiredMixin, DetailView):
     model = Vocabulary
 
     def get(self, request, *args, **kwargs):
         vocab: Vocabulary = self.get_object()
         if vocab.is_published:
-            return JsonResponse({'published': vocab.is_published, 'date': vocab.publication_date.isoformat()})
+            return JsonResponse({'published': vocab.is_published, 'date': vocab.published.isoformat()})
         else:
             return JsonResponse({'published': vocab.is_published})
 
@@ -301,3 +332,52 @@ class PublishedVocabularyView(LoginRequiredMixin, DetailView):
             self.get_object().unpublish()
 
         return HttpResponseRedirect(reverse('show_vocabulary', kwargs={'pk': self.get_object().id}))
+
+
+class VocabularyPublicationFormView(LoginRequiredMixin, DetailView):
+    model = Vocabulary
+    template_name = 'vocabs/publication_form.html'
+    context_object_name = 'vocabulary'
+
+
+class NewTermFormView(LoginRequiredMixin, PublishUpdatesMixin, DetailView, FormView):
+    model = Vocabulary
+    context_object_name = 'vocabulary'
+    template_name = 'vocabs/new_term_form.html'
+    form_class = TermForm
+
+    def get_initial(self):
+        return {'vocabulary': self.get_object()}
+
+    def form_valid(self, form: TermForm):
+        try:
+            term = Term.objects.create(
+                vocabulary=form.cleaned_data['vocabulary'],
+                name=form.cleaned_data['name'],
+            )
+        except IntegrityError:
+            form.add_error(
+                field=None,
+                error=f'A term with the name "{form.cleaned_data["name"]}" already exists in this vocabulary',
+            )
+            return self.form_invalid(form)
+
+        if form.cleaned_data['rdf_type'] != '':
+            Property.objects.get_or_create(
+                term=term,
+                predicate=rdf_type_predicate(),
+                value=from_n3(form.cleaned_data['rdf_type']),
+            )
+
+        if self.request.htmx:
+            response = render(self.request, 'vocabs/term.html', {'term': term, 'predicates': Predicate.objects.all})
+            add_htmx_trigger(response, 'grove:termAdded')
+            return response
+        else:
+            return HttpResponseRedirect(reverse('show_vocabulary', args=(form.cleaned_data['vocabulary'].id,)))
+
+    def form_invalid(self, form):
+        response = render(self.request, 'vocabs/new_term_form.html', {'vocabulary': self.get_object(), 'form': form})
+        response.headers['HX-Retarget'] = '#new-term'
+        response.headers['HX-Reswap'] = 'innerHTML'
+        return response

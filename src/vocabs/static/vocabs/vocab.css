@@ -5,6 +5,8 @@ td {
 fieldset {
     display: inline-block;
     border: none;
+    margin: 0;
+    padding: 0;
 }
 
 ul {
@@ -66,7 +68,14 @@ form {
     grid-template-columns: auto auto 1fr;
     grid-template-rows: 100%;
     grid-column-gap: .5em;
-    align-items: center;
+    align-items: start;
+}
+.property>form {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    grid-template-rows: 100%;
+    grid-column-gap: .5em;
+    align-items: start;
 }
 .property:hover {
     background-color: var(--info-subtle);

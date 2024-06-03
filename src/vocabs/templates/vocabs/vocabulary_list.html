@@ -8,11 +8,12 @@
     <th>Term Count</th>
     <th>URI</th>
     <th>Preview</th>
+    <th></th>
   </tr>
   </thead>
   <tbody>
   {% for vocab in vocabularies %}
-  <tr>
+  <tr class="vocabulary">
     <td>
       <a href="{% url 'show_vocabulary' pk=vocab.id %}">{{ vocab.label }}</a>
     </td>
@@ -29,6 +30,10 @@
       {% for param, label in formats.items %}
       <a href="{% url 'show_graph' pk=vocab.id %}?format={{ param }}">{{ label }}</a>
       {% endfor %}
+    </td>
+    <td>
+      <button class="delete" hx-delete="{% url 'show_vocabulary' pk=vocab.id %}" hx-target="closest .vocabulary" hx-swap="delete"
+              hx-confirm="Really delete the vocabulary '{{ vocab.label }}'?">Delete</button>
     </td>
   </tr>
   {% endfor %}

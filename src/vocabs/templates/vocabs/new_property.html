@@ -1,8 +1,13 @@
 <li class="property">
-  <form method="post" action="{% url 'new_property' %}">
+  <form method="post" action="{% url 'new_property' %}" hx-boost="true" hx-push-url="false"
+        hx-target="closest .property" hx-swap="outerHTML">
     {% csrf_token %}
-    {{ form.term }} {{ form.predicate }} {{ form.value }}
-    <button class="update" hx-post="{% url 'new_property' %}" hx-target="closest .property" type="submit">Save</button>
+    {{ form.term }} {{ form.predicate }}
+    <fieldset>
+      {{ form.value }}
+      {{ form.value.errors }}
+    </fieldset>
+    <button class="update" type="submit">Save</button>
     <button onclick="this.parentNode.parentNode.remove()">Cancel</button>
   </form>
 </li>

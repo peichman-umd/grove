@@ -3,7 +3,16 @@
 {% block head %}
 <script src="{% static 'vocabs/grove.js' %}"></script>
 <link rel="stylesheet" type="text/css" href="{% static 'vocabs/vocab.css' %}" />
+<meta name="htmx-config" content='{"useTemplateFragments":"true"}'>
 {% endblock %}
 {% block main %}
 {% block content %}{% endblock %}
+<script type="application/javascript">
+  document.body.addEventListener('htmx:beforeRequest', function (evt) {
+    // send the csrftoken as a header on DELETE requests
+    if (evt.detail.requestConfig.verb == 'delete') {
+      evt.detail.xhr.setRequestHeader('X-CSRFToken', cookieParser(document.cookie).csrftoken);
+    }
+  })
+</script>
 {% endblock %}

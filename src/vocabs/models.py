@@ -1,20 +1,25 @@
 import logging
+import re
 from collections import Counter
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from os.path import basename
 from pathlib import PurePath
 from typing import IO, TextIO, TypeAlias, NamedTuple, cast
 from xml.sax import SAXParseException
 
 from django.core.validators import RegexValidator
-from django.db.models import CASCADE, PROTECT, CharField, ForeignKey, Model, TextChoices
+from django.db.models import CASCADE, PROTECT, CharField, DateTimeField, ForeignKey, Model, TextChoices, \
+    UniqueConstraint, Q
+from django_extensions.db.models import TimeStampedModel
 from plastron.namespaces import dc, namespace_manager as nsm, rdfs
 from rdflib import Graph, Literal, URIRef, Namespace
 from rdflib.namespace import NamespaceManager
 from rdflib.parser import InputSource
 from rdflib.plugin import PluginException
 from rdflib.util import from_n3
+from safedelete.config import SOFT_DELETE_CASCADE
+from safedelete.models import SafeDeleteModel
 
 from grove.settings import VOCAB_OUTPUT_DIR
 
@@ -38,6 +43,12 @@ class VocabularyURIValidator(RegexValidator):
     message = 'Must end with "/" or "#"'
 
 
+class TermNameValidator(RegexValidator):
+    regex = r'^[a-z0-9_-]+$'
+    flags = re.IGNORECASE
+    message = 'Term names may only contain A-Z, a-z, 0-9, and "-" and "_"'
+
+
 class Context(dict):
     def __init__(self, namespace_manager: NamespaceManager, **kwargs):
         self.namespace_manager = namespace_manager
@@ -57,7 +68,7 @@ class OutputFormat(NamedTuple):
     parameter_names: list[str]
 
 
-class Vocabulary(Model):
+class Vocabulary(TimeStampedModel):
     class Meta:
         verbose_name_plural = 'vocabularies'
 
@@ -65,6 +76,7 @@ class Vocabulary(Model):
     label = CharField(max_length=256)
     description = CharField(max_length=1024, blank=True)
     preferred_prefix = CharField(max_length=32, blank=True)
+    published = DateTimeField(editable=False, null=True)
 
     def __str__(self) -> str:
         return str(self.uri)
@@ -119,6 +131,27 @@ class Vocabulary(Model):
         OutputFormat('application/n-triples', 'nt', 'N-Triples', ['nt', 'ntriples', 'n-triples']),
     ]
 
+    @property
+    def updated(self):
+        """
+        Returns timestamp when this Vocabulary or any of its dependent Term or
+        Property model was last changed (added, modified, or deleted)
+        """
+        most_recent_update = self.modified
+        for term in self.terms.all_with_deleted():
+            most_recent_update = most_recent_update if most_recent_update > term.modified else term.modified
+            for prop in term.properties.all_with_deleted():
+                most_recent_update = most_recent_update if most_recent_update > prop.modified else prop.modified
+        return most_recent_update
+
+    @property
+    def has_updated(self):
+        """
+        Returns True if this Vocabulary, or any of its dependent Term o
+        Property models have changes that have not been published.
+        """
+        return not self.is_published or (self.updated > self.published)
+
     def publish(self):
         graph, context = self.graph()
         for fmt in self.OUTPUT_FORMATS:
@@ -127,30 +160,46 @@ class Vocabulary(Model):
                 graph.serialize(destination=fh, format=fmt.media_type, context=context, encoding='utf-8')
             logger.info(f'Wrote {self} to {file} as {fmt.label}')
 
+        # Set "published" and "modified" fields directly using queryset instead
+        # of using `self.published = datetime.now(timezone.utc)` to avoid the
+        # situation where a `self.save()` results in the "modified" timestamp
+        # being set to a few milliseconds later, throwing off the "has_updated"
+        # check.
+        current_time = datetime.now(timezone.utc)
+        Vocabulary.objects.filter(pk=self.pk).update(published=current_time, modified=current_time)
+        self.refresh_from_db()
+
     def unpublish(self):
+        self.published = None
+        self.save()
+
         for fmt in self.OUTPUT_FORMATS:
             file = VOCAB_OUTPUT_DIR / (self.basename + '.' + fmt.extension)
             file.unlink(missing_ok=True)
 
     @property
     def is_published(self) -> bool:
-        return all(
-            (VOCAB_OUTPUT_DIR / (self.basename + '.' + f.extension)).exists()
-            for f in self.OUTPUT_FORMATS
-        )
-
-    @property
-    def publication_date(self) -> datetime | None:
-        if not self.is_published:
-            return None
-        return datetime.fromtimestamp(
-            int((VOCAB_OUTPUT_DIR / (self.basename + '.' + self.OUTPUT_FORMATS[0].extension)).stat().st_mtime)
-        )
+        return self.published is not None
 
 
-class Term(Model):
+class Term(TimeStampedModel, SafeDeleteModel):
+    class Meta:
+        constraints = [
+            # terms within a vocabulary must have a unique name
+            UniqueConstraint(
+                fields=('vocabulary', 'name'),
+                condition=Q(deleted__isnull=True),
+                name='unique_term_vocabulary_name',
+                violation_error_message='A term with this name already exists in this vocabulary',
+            ),
+        ]
+
+    # Use SOFT_DELETE_CASCADE policy to ensure that dependent Property models
+    # are also soft-deleted (instead of not being deleted at all).
+    _safedelete_policy = SOFT_DELETE_CASCADE
+
     vocabulary = ForeignKey(Vocabulary, on_delete=CASCADE, related_name='terms')
-    name = CharField(max_length=256)
+    name = CharField(max_length=256, validators=[TermNameValidator()])
 
     @property
     def uri(self):
@@ -185,7 +234,7 @@ class Predicate(Model):
         return Property.objects.filter(predicate=self).count()
 
 
-class Property(Model):
+class Property(TimeStampedModel, SafeDeleteModel):
     class Meta:
         verbose_name_plural = 'properties'
 
@@ -202,7 +251,10 @@ class Property(Model):
 
     @property
     def value_as_curie(self) -> str:
-        curie = URIRef(str(self.value)).n3(namespace_manager=nsm)
+        try:
+            curie = URIRef(str(self.value)).n3(namespace_manager=nsm)
+        except Exception:  # noqa
+            curie = str(self.value)
         return curie if len(curie) <= len(str(self.value)) else str(self.value)
 
     @property
