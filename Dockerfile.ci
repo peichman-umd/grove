@@ -1,5 +1,5 @@
 # Pull base image
-FROM python:3.11.4-slim
+FROM python:3.14.9-slim
 
 # Install git
 RUN apt-get update && \
